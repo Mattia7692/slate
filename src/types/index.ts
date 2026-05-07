@@ -103,6 +103,32 @@ export interface MoodboardItem {
   created_at: string
 }
 
+export interface Vision {
+  id: string
+  creator_id: string
+  title: string
+  description: string | null
+  role_needed: UserRole
+  status: 'open' | 'closed'
+  created_at: string
+}
+
+export interface VisionImage {
+  id: string
+  vision_id: string
+  image_url: string
+  order_index: number
+}
+
+export interface VisionWithImages extends Vision {
+  images: VisionImage[]
+}
+
+export interface VisionWithCreator extends Vision {
+  creator: Pick<Profile, 'id' | 'full_name' | 'role' | 'avatar_url' | 'level'>
+  images: VisionImage[]
+}
+
 export interface Notification {
   id: string
   profile_id: string

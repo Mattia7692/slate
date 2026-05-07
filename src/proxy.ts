@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Route che richiedono autenticazione
-const PROTECTED_ROUTES = ['/dashboard', '/explore', '/profile', '/projects', '/onboarding', '/messages', '/invites']
+const PROTECTED_ROUTES = ['/dashboard', '/explore', '/profile', '/projects', '/onboarding', '/messages', '/invites', '/bacheca', '/me']
 // Route solo per utenti NON autenticati
 const AUTH_ROUTES = ['/auth/login', '/auth/signup']
 

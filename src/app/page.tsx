@@ -145,9 +145,11 @@ export default function LandingPage() {
         <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-tight mb-6">
           La fotografia professionale merita un posto serio.
         </h1>
-        <p className="text-lg md:text-xl text-neutral-500 leading-relaxed mb-10 max-w-xl">
-          Slate è una comunità chiusa per fotografe, fotografi e modelle che prendono il loro lavoro sul serio. Si entra solo su invito. Si resta solo se si è all&apos;altezza.
-        </p>
+        <div className="text-lg md:text-xl text-neutral-500 leading-relaxed mb-10 max-w-xl space-y-5">
+          <p>Slate è una piattaforma per far lavorare insieme fotografi e modelle che hanno una passione profonda per quello che fanno.</p>
+          <p>È una comunità fondata su tre valori: apertura radicale — verso le persone, le idee e le visioni creative degli altri; espressione autentica — la libertà di portare il proprio stile e la propria voce senza doverli giustificare; responsabilità concreta — nei confronti del proprio lavoro, degli impegni presi e delle persone con cui si collabora.</p>
+          <p>Si entra su invito. Si resta per scelta.</p>
+        </div>
         <button
           onClick={openModal}
           className="bg-neutral-900 text-white rounded-full px-8 py-4 text-sm font-semibold hover:bg-neutral-700 transition-colors touch-manipulation"
@@ -155,14 +157,14 @@ export default function LandingPage() {
           Richiedi l&apos;accesso
         </button>
         <p className="text-xs text-neutral-400 mt-4">
-          Accesso su invito · ogni profilo viene approvato manualmente
+          Ogni profilo viene approvato manualmente
         </p>
       </section>
 
       {/* ── MANIFESTO ─────────────────────────────────────────── */}
       <section className="border-t border-neutral-100 px-6 py-24">
         <div className="max-w-2xl mx-auto space-y-10">
-          <p className="text-xs font-semibold tracking-[0.2em] text-neutral-400 uppercase">
+          <p className="text-sm font-semibold tracking-[0.25em] text-neutral-400 uppercase">
             Il Manifesto
           </p>
           <div className="space-y-7 text-lg text-neutral-700 leading-[1.85]">
@@ -188,7 +190,7 @@ export default function LandingPage() {
       {/* ── COSA OFFRE SLATE ──────────────────────────────────── */}
       <section className="border-t border-neutral-100 px-6 py-24 bg-neutral-50">
         <div className="max-w-4xl mx-auto space-y-12">
-          <p className="text-xs font-semibold tracking-[0.2em] text-neutral-400 uppercase">
+          <p className="text-sm font-semibold tracking-[0.25em] text-neutral-400 uppercase">
             Cosa offre Slate
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -239,7 +241,7 @@ export default function LandingPage() {
       {/* ── COME FUNZIONA ─────────────────────────────────────── */}
       <section className="border-t border-neutral-100 px-6 py-24">
         <div className="max-w-2xl mx-auto space-y-12">
-          <p className="text-xs font-semibold tracking-[0.2em] text-neutral-400 uppercase">
+          <p className="text-sm font-semibold tracking-[0.25em] text-neutral-400 uppercase">
             Come funziona
           </p>
           <div className="space-y-8">
@@ -262,14 +264,14 @@ export default function LandingPage() {
       <section className="border-t border-neutral-100 px-6 py-24 bg-neutral-50">
         <div className="max-w-4xl mx-auto space-y-12">
           <div className="space-y-4 max-w-2xl">
-            <p className="text-xs font-semibold tracking-[0.2em] text-neutral-400 uppercase">
+            <p className="text-sm font-semibold tracking-[0.25em] text-neutral-400 uppercase">
               Il sistema di livelli
             </p>
             <h2 className="text-3xl font-bold tracking-tight">
               L&apos;esperienza si guadagna, non si dichiara.
             </h2>
             <p className="text-neutral-500 leading-relaxed">
-              Il tuo livello è calcolato sulla base degli anni nel settore — certificati dalla tua prima foto professionale — e dai lavori completati in piattaforma. Nessuno può comprarsi la reputazione.
+              Il tuo livello è calcolato sulla base degli anni nel settore — certificati dalla data della tua prima foto professionale — da te scattata o in cui hai posato — e dai lavori completati in piattaforma. Nessuno può comprarsi la reputazione.
             </p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">

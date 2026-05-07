@@ -1,12 +1,14 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getLevelName, getLevelProgress, getXpForNextLevel } from '@/lib/xp'
 import { isFounder } from '@/lib/founder'
 import { XPBadge } from '@/components/profile/XPBadge'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
 import { ProfileCard } from '@/components/profile/ProfileCard'
-import type { ProjectStatus, Profile, PortfolioItem } from '@/types'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
+import type { ProjectStatus, Profile, PortfolioItem, Notification } from '@/types'
 
 const STATUS_LABEL: Record<ProjectStatus, string> = {
   proposed: 'Proposta inviata',
@@ -57,6 +59,17 @@ export default async function DashboardPage() {
 
   const isApproved = profile.status === 'approved'
   const oppositeRole = profile.role === 'photographer' ? 'model' : 'photographer'
+
+  // Notifiche (admin client per bypassare RLS)
+  const adminClient = createAdminClient()
+  const { data: rawNotifications } = await adminClient
+    .from('notifications')
+    .select('*')
+    .eq('profile_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(30)
+
+  const notifications = (rawNotifications ?? []) as Notification[]
 
   // Fetch in parallelo
   const [
@@ -132,6 +145,9 @@ export default async function DashboardPage() {
               <Link href="/explore" className="text-sm text-neutral-400 hover:text-neutral-100 transition-colors">
                 Esplora
               </Link>
+              <Link href="/projects" className="text-sm text-neutral-400 hover:text-neutral-100 transition-colors">
+                Progetti
+              </Link>
               <Link href="/messages" className="text-sm text-neutral-400 hover:text-neutral-100 transition-colors">
                 Messaggi
               </Link>
@@ -140,6 +156,12 @@ export default async function DashboardPage() {
           <Link href={`/profile/${user.id}`} className="text-sm text-neutral-400 hover:text-neutral-100 transition-colors">
             Profilo
           </Link>
+          {isApproved && (
+            <NotificationBell
+              initialNotifications={notifications}
+              currentUserId={user.id}
+            />
+          )}
         </nav>
       </header>
 

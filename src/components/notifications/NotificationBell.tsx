@@ -1,0 +1,211 @@
+'use client'
+
+import { useState, useTransition, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { acceptInvite, declineInvite, markNotificationRead } from '@/app/invites/actions'
+import type { Notification, NotificationType } from '@/types'
+
+interface NotificationBellProps {
+  initialNotifications: Notification[]
+  currentUserId: string
+}
+
+const TYPE_ICON: Record<NotificationType, string> = {
+  invite_received: '📩',
+  invite_accepted: '✅',
+  invite_declined: '❌',
+  project_update: '📋',
+}
+
+export function NotificationBell({ initialNotifications, currentUserId }: NotificationBellProps) {
+  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications)
+  const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const [processingId, setProcessingId] = useState<string | null>(null)
+  const router = useRouter()
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const unread = notifications.filter((n) => !n.read_at).length
+
+  // Chiudi dropdown cliccando fuori
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  // Supabase realtime
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel('notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `profile_id=eq.${currentUserId}`,
+        },
+        (payload) => {
+          setNotifications((prev) => [payload.new as Notification, ...prev])
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `profile_id=eq.${currentUserId}`,
+        },
+        (payload) => {
+          setNotifications((prev) =>
+            prev.map((n) => (n.id === (payload.new as Notification).id ? (payload.new as Notification) : n))
+          )
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [currentUserId])
+
+  function handleAccept(n: Notification) {
+    if (!n.invite_id || isPending) return
+    setProcessingId(n.id)
+    startTransition(async () => {
+      const result = await acceptInvite(n.invite_id!)
+      if (result.error) {
+        alert(result.error)
+        setProcessingId(null)
+        return
+      }
+      setOpen(false)
+      router.push(`/projects/${result.projectId}`)
+    })
+  }
+
+  function handleDecline(n: Notification) {
+    if (!n.invite_id || isPending) return
+    setProcessingId(n.id)
+    startTransition(async () => {
+      const result = await declineInvite(n.invite_id!)
+      if (result.error) {
+        alert(result.error)
+      }
+      setProcessingId(null)
+      setNotifications((prev) =>
+        prev.map((x) => x.id === n.id ? { ...x, read_at: new Date().toISOString() } : x)
+      )
+    })
+  }
+
+  function handleMarkRead(n: Notification) {
+    if (n.read_at) return
+    startTransition(async () => {
+      await markNotificationRead(n.id)
+      setNotifications((prev) =>
+        prev.map((x) => x.id === n.id ? { ...x, read_at: new Date().toISOString() } : x)
+      )
+    })
+    if (n.project_id) {
+      setOpen(false)
+      router.push(`/projects/${n.project_id}`)
+    }
+  }
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="relative flex items-center justify-center w-8 h-8 rounded-lg text-neutral-400 hover:text-neutral-100 hover:bg-neutral-800 transition-colors"
+        aria-label="Notifiche"
+      >
+        <span className="text-base leading-none">🔔</span>
+        {unread > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-[10px] font-bold text-white flex items-center justify-center leading-none">
+            {unread > 9 ? '9+' : unread}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-10 w-80 rounded-2xl border border-neutral-800 bg-neutral-950 shadow-2xl overflow-hidden z-50">
+          <div className="px-4 py-3 border-b border-neutral-800">
+            <p className="text-sm font-semibold">Notifiche</p>
+          </div>
+
+          {notifications.length === 0 ? (
+            <div className="px-4 py-8 text-center">
+              <p className="text-sm text-neutral-600">Nessuna notifica</p>
+            </div>
+          ) : (
+            <div className="max-h-[420px] overflow-y-auto divide-y divide-neutral-800/50">
+              {notifications.map((n) => (
+                <div
+                  key={n.id}
+                  className={[
+                    'px-4 py-3 space-y-2 transition-colors',
+                    !n.read_at ? 'bg-neutral-900/60' : '',
+                    n.type !== 'invite_received' && n.project_id ? 'cursor-pointer hover:bg-neutral-900' : '',
+                  ].join(' ')}
+                  onClick={() => {
+                    if (n.type !== 'invite_received') handleMarkRead(n)
+                  }}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <span className="text-base leading-none mt-0.5 shrink-0">
+                      {TYPE_ICON[n.type]}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium leading-tight">{n.title}</p>
+                      {n.body && (
+                        <p className="text-xs text-neutral-500 mt-0.5 line-clamp-2">{n.body}</p>
+                      )}
+                      <p className="text-[11px] text-neutral-700 mt-1">
+                        {new Date(n.created_at).toLocaleDateString('it-IT', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                    {!n.read_at && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 mt-1.5" />
+                    )}
+                  </div>
+
+                  {/* Bottoni accetta/rifiuta per inviti */}
+                  {n.type === 'invite_received' && !n.read_at && n.invite_id && (
+                    <div className="flex items-center gap-2 pl-7">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleAccept(n) }}
+                        disabled={processingId === n.id}
+                        className="flex-1 rounded-lg bg-white text-black text-xs font-semibold py-1.5 hover:bg-neutral-200 transition-colors disabled:opacity-50"
+                      >
+                        {processingId === n.id ? '...' : 'Accetta'}
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDecline(n) }}
+                        disabled={processingId === n.id}
+                        className="flex-1 rounded-lg border border-neutral-700 text-neutral-400 text-xs font-semibold py-1.5 hover:border-neutral-500 hover:text-neutral-200 transition-colors disabled:opacity-50"
+                      >
+                        Rifiuta
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}

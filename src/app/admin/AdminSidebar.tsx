@@ -17,6 +17,12 @@ const NAV_ITEMS = [
     exact: false,
   },
   {
+    label: 'Progetti',
+    href: '/admin/projects',
+    icon: '📋',
+    exact: false,
+  },
+  {
     label: 'Monitoraggio chat',
     href: '/admin/messages',
     icon: '💬',

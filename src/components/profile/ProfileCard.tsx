@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import type { Profile, PortfolioItem } from '@/types'
 
 const LEVEL_BADGE: Record<number, { label: string; bg: string }> = {
@@ -31,15 +30,15 @@ export function ProfileCard({ profile, coverImage }: ProfileCardProps) {
       className="group block rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-800 hover:border-neutral-700 transition-all duration-200 ease-out hover:scale-[1.02]"
     >
       {/* Immagine + overlay */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-neutral-800">
+      <div className="relative aspect-[4/3] overflow-hidden bg-neutral-800" style={{ maxHeight: '220px' }}>
 
         {/* Cover o placeholder iniziali */}
         {coverImage ? (
-          <Image
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
             src={coverImage.image_url}
             alt={profile.full_name}
-            fill
-            className="object-cover"
+            className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">

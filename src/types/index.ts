@@ -14,6 +14,12 @@ export type ProjectStatus =
   | 'cancelled'
 export type PayerRole = 'photographer' | 'model' | 'tfp'
 export type ShootUsage = 'portfolio_only' | 'social' | 'commercial'
+export type InviteStatus = 'pending' | 'accepted' | 'declined'
+export type NotificationType =
+  | 'invite_received'
+  | 'invite_accepted'
+  | 'invite_declined'
+  | 'project_update'
 export type XpReason =
   | 'seniority_bonus'
   | 'shoot_completed'
@@ -67,10 +73,43 @@ export interface Project {
   photographer_id: string
   model_id: string
   proposed_by: string | null
+  invite_id: string | null
   status: ProjectStatus
   payer_role: PayerRole
   amount: number
   stripe_payment_intent_id: string | null
+  created_at: string
+}
+
+export interface ProjectInvite {
+  id: string
+  sender_id: string
+  receiver_id: string
+  message: string | null
+  status: InviteStatus
+  payer_role: PayerRole
+  amount: number
+  created_at: string
+}
+
+export interface MoodboardItem {
+  id: string
+  project_id: string
+  image_url: string
+  caption: string | null
+  added_by: string
+  created_at: string
+}
+
+export interface Notification {
+  id: string
+  profile_id: string
+  type: NotificationType
+  title: string
+  body: string | null
+  invite_id: string | null
+  project_id: string | null
+  read_at: string | null
   created_at: string
 }
 
@@ -153,6 +192,11 @@ export interface ProjectWithParticipants extends Project {
   photographer: Profile
   model: Profile
   brief: Brief | null
+}
+
+export interface ProjectInviteWithProfiles extends ProjectInvite {
+  sender: Pick<Profile, 'id' | 'full_name' | 'role' | 'avatar_url' | 'level'>
+  receiver: Pick<Profile, 'id' | 'full_name' | 'role' | 'level'>
 }
 
 export interface ReviewWithReviewer extends Review {

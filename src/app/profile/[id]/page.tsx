@@ -5,7 +5,7 @@ import { XPBadge } from '@/components/profile/XPBadge'
 import { isFounder } from '@/lib/founder'
 import { PortfolioGrid } from '@/components/profile/PortfolioGrid'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
-import { ProposeButton } from './ProposeButton'
+import { ProposeModal } from './ProposeModal'
 import { MessageButton } from './MessageButton'
 import type { ReviewWithReviewer } from '@/types'
 
@@ -41,6 +41,13 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   if (!profile) notFound()
 
   const isOwnProfile = user.id === id
+
+  // Profilo dell'utente corrente (per calcolo compenso)
+  const { data: myProfile } = await supabase
+    .from('profiles')
+    .select('id, role, level')
+    .eq('id', user.id)
+    .single()
 
   // Portfolio, recensioni in parallelo
   const [{ data: portfolioItems }, { data: reviews }] = await Promise.all([
@@ -131,9 +138,21 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         )}
 
         {/* CTA */}
-        {!isOwnProfile && profile.status === 'approved' && (
+        {!isOwnProfile && profile.status === 'approved' && myProfile && myProfile.role !== profile.role && (
           <div className="flex items-center gap-3 flex-wrap">
-            <ProposeButton targetProfileId={id} targetName={profile.full_name} />
+            <ProposeModal
+              targetProfileId={id}
+              targetName={profile.full_name}
+              targetLevel={profile.level}
+              targetRole={profile.role}
+              currentLevel={myProfile.level}
+              currentRole={myProfile.role}
+            />
+            <MessageButton targetUserId={id} />
+          </div>
+        )}
+        {!isOwnProfile && profile.status === 'approved' && myProfile && myProfile.role === profile.role && (
+          <div className="flex items-center gap-3 flex-wrap">
             <MessageButton targetUserId={id} />
           </div>
         )}

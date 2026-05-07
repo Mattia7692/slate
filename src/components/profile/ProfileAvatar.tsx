@@ -1,4 +1,3 @@
-import Image from 'next/image'
 import type { UserRole } from '@/types'
 
 const ROLE_BADGE: Record<UserRole, string> = {
@@ -21,7 +20,12 @@ export function ProfileAvatar({ avatarUrl, role, size = 64 }: ProfileAvatarProps
         style={{ fontSize: size * 0.45 }}
       >
         {avatarUrl ? (
-          <Image src={avatarUrl} alt="Avatar" fill className="object-cover" />
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl}
+            alt="Avatar"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
         ) : (
           <span>{ROLE_BADGE[role]}</span>
         )}

@@ -87,7 +87,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
             <p className="text-sm text-neutral-600">Prova a cambiare i filtri.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {profilesWithCover.map((profile) => (
               <ProfileCard
                 key={profile.id}

@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isFounder } from '@/lib/founder'
+import { computeLevel } from '@/lib/xp'
 
 export async function adminUpdateProfile(profileId: string, formData: FormData) {
   await requireAdmin()
@@ -35,6 +36,7 @@ export async function adminUpdateProfile(profileId: string, formData: FormData) 
       instagram_url: instagram_url || null,
       years_in_industry,
       xp,
+      level: computeLevel(xp),
     })
     .eq('id', profileId)
 
@@ -66,10 +68,11 @@ export async function awardFounderXp(profileId: string, delta: number) {
   if (!profile) return { error: 'Profilo non trovato.' }
 
   const newXp = Math.max(0, profile.xp + delta)
+  const newLevel = computeLevel(newXp)
 
-  // Aggiorna XP e logga la transazione
+  // Aggiorna XP + level e logga la transazione
   const [{ error: updateError }, { error: logError }] = await Promise.all([
-    admin.from('profiles').update({ xp: newXp }).eq('id', profileId),
+    admin.from('profiles').update({ xp: newXp, level: newLevel }).eq('id', profileId),
     admin.from('xp_transactions').insert({
       profile_id: profileId,
       delta,

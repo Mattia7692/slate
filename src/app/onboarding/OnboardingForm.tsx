@@ -1,7 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import Image from 'next/image'
+import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { createProfile } from './actions'
 import { Button } from '@/components/ui/Button'
@@ -32,6 +31,8 @@ const INITIAL_STATE: FormState = {
 }
 
 const STEPS = ['Ruolo', 'Profilo', 'Foto'] as const
+const PORTFOLIO_MIN = 3
+const PORTFOLIO_MAX = 10
 
 // ============================================================
 // Componente principale
@@ -40,14 +41,25 @@ const STEPS = ['Ruolo', 'Profilo', 'Foto'] as const
 export function OnboardingForm({ preview = false }: { preview?: boolean }) {
   const [step, setStep] = useState(0)
   const [form, setForm] = useState<FormState>(INITIAL_STATE)
+
+  // Foto più vecchia
   const [oldestPhotoFile, setOldestPhotoFile] = useState<File | null>(null)
   const [oldestPhotoPreview, setOldestPhotoPreview] = useState<string | null>(null)
+
+  // Foto profilo (avatar)
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+
+  // Portfolio
   const [portfolioFiles, setPortfolioFiles] = useState<File[]>([])
   const [portfolioPreviews, setPortfolioPreviews] = useState<string[]>([])
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [previewDone, setPreviewDone] = useState(false)
+  const [submitBlocked, setSubmitBlocked] = useState(false)
 
+  const submitBtnRef = useRef<HTMLButtonElement>(null)
   const supabase = createClient()
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -62,9 +74,15 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
     setOldestPhotoPreview(URL.createObjectURL(file))
   }
 
+  function handleAvatarPhoto(file: File | null) {
+    if (!file) return
+    setAvatarFile(file)
+    setAvatarPreview(URL.createObjectURL(file))
+  }
+
   function handlePortfolioFiles(files: FileList | null) {
     if (!files) return
-    const newFiles = Array.from(files).slice(0, 10 - portfolioFiles.length)
+    const newFiles = Array.from(files).slice(0, PORTFOLIO_MAX - portfolioFiles.length)
     setPortfolioFiles((prev) => [...prev, ...newFiles])
     setPortfolioPreviews((prev) => [
       ...prev,
@@ -83,7 +101,6 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
       upsert: false,
     })
     if (error) throw new Error(error.message)
-
     const { data } = supabase.storage.from(bucket).getPublicUrl(path)
     return data.publicUrl
   }
@@ -93,7 +110,17 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
   function canProceed(): boolean {
     if (step === 0) return form.role !== null
     if (step === 1) return form.full_name.trim().length >= 2
-    return true
+    // Step 2: tutte e tre le sezioni devono essere complete
+    return oldestPhotoFile !== null && avatarFile !== null && portfolioFiles.length >= PORTFOLIO_MIN
+  }
+
+  function handleSubmitClick() {
+    if (portfolioFiles.length < PORTFOLIO_MIN) {
+      setSubmitBlocked(true)
+      setTimeout(() => setSubmitBlocked(false), 3000)
+      return
+    }
+    handleSubmit()
   }
 
   // --- Submit finale ---
@@ -118,11 +145,14 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
       let oldestPhotoUrl: string | null = null
       if (oldestPhotoFile) {
         const ext = oldestPhotoFile.name.split('.').pop()
-        oldestPhotoUrl = await uploadFile(
-          oldestPhotoFile,
-          'oldest-photos',
-          `${uid}/${ts}.${ext}`
-        )
+        oldestPhotoUrl = await uploadFile(oldestPhotoFile, 'oldest-photos', `${uid}/${ts}.${ext}`)
+      }
+
+      // Upload foto profilo (avatar)
+      let avatarUrl: string | null = null
+      if (avatarFile) {
+        const ext = avatarFile.name.split('.').pop()
+        avatarUrl = await uploadFile(avatarFile, 'avatars', `${uid}/${ts}-avatar.${ext}`)
       }
 
       // Upload portfolio
@@ -134,7 +164,6 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
         portfolioUrls.push(url)
       }
 
-      // Crea il profilo via Server Action
       const result = await createProfile({
         role: form.role!,
         full_name: form.full_name,
@@ -143,6 +172,7 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
         instagram_url: form.instagram_url,
         years_in_industry: form.years_in_industry,
         oldest_photo_url: oldestPhotoUrl,
+        avatar_url: avatarUrl,
         portfolio_urls: portfolioUrls,
       })
 
@@ -167,7 +197,17 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
         <p className="text-lg font-medium">Anteprima completata</p>
         <p className="text-sm text-neutral-400">Nessun dato è stato salvato.</p>
         <button
-          onClick={() => { setPreviewDone(false); setStep(0); setForm(INITIAL_STATE); setOldestPhotoFile(null); setOldestPhotoPreview(null); setPortfolioFiles([]); setPortfolioPreviews([]) }}
+          onClick={() => {
+            setPreviewDone(false)
+            setStep(0)
+            setForm(INITIAL_STATE)
+            setOldestPhotoFile(null)
+            setOldestPhotoPreview(null)
+            setAvatarFile(null)
+            setAvatarPreview(null)
+            setPortfolioFiles([])
+            setPortfolioPreviews([])
+          }}
           className="text-sm text-neutral-400 hover:text-white underline transition-colors cursor-pointer"
         >
           Ricomincia dall&apos;inizio
@@ -175,6 +215,9 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
       </div>
     )
   }
+
+  const portfolioCount = portfolioFiles.length
+  const portfolioReady = portfolioCount >= PORTFOLIO_MIN
 
   return (
     <div className="space-y-8">
@@ -195,7 +238,6 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
                 i <= step ? 'bg-white' : 'bg-neutral-800',
               ].join(' ')}
             />
-            {i === STEPS.length - 1 && null}
           </div>
         ))}
       </div>
@@ -300,34 +342,37 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
 
       {/* ---- STEP 2: Foto ---- */}
       {step === 2 && (
-        <div className="space-y-6">
-          <h2 className="text-lg font-medium">Le tue foto</h2>
+        <div className="space-y-8">
 
-          {/* Foto più vecchia */}
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-neutral-300">
-              Foto più vecchia che possiedi
-            </p>
-            <p className="text-xs text-neutral-500">
-              Serve per verificare il tuo bonus anzianità ({form.years_in_industry} anni →{' '}
-              <span className="text-emerald-400">
-                +{computeSeniorityBonus(form.years_in_industry)} XP
-              </span>
-              ).
-            </p>
+          {/* SEZIONE 1 — Foto più vecchia */}
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-base font-medium">La tua foto più vecchia</h3>
+              <p className="text-sm text-neutral-500 mt-1 leading-relaxed">
+                Carica la foto professionale più vecchia in cui hai posato o che hai scattato.
+                La data di questa immagine serve a dare credibilità agli anni di esperienza che hai dichiarato.
+                Siamo consapevoli che le date possono essere alterate — stiamo cercando di costruire
+                un rapporto di fiducia reciproca 😊
+              </p>
+            </div>
 
             {oldestPhotoPreview ? (
-              <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-neutral-700">
-                <Image src={oldestPhotoPreview} alt="Foto anzianità" fill className="object-cover" />
+              <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-neutral-700">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={oldestPhotoPreview}
+                  alt="Foto anzianità"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
                 <button
                   onClick={() => { setOldestPhotoFile(null); setOldestPhotoPreview(null) }}
-                  className="absolute top-2 right-2 bg-black/60 rounded-full p-1 text-xs hover:bg-black/80 cursor-pointer"
+                  className="absolute top-2 right-2 bg-black/60 rounded-full w-7 h-7 flex items-center justify-center text-xs hover:bg-black/80 cursor-pointer transition-colors"
                 >
                   ✕
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center w-full h-32 rounded-lg border border-dashed border-neutral-700 hover:border-neutral-500 cursor-pointer transition-colors">
+              <label className="flex flex-col items-center justify-center w-full h-36 rounded-xl border border-dashed border-neutral-700 hover:border-neutral-500 cursor-pointer transition-colors">
                 <span className="text-sm text-neutral-500">Clicca per caricare</span>
                 <span className="text-xs text-neutral-600 mt-1">JPG, PNG, WebP — max 10MB</span>
                 <input
@@ -338,32 +383,97 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
                 />
               </label>
             )}
+
+            <p className="text-xs text-neutral-600">
+              Questa foto è riservata agli amministratori e non sarà visibile nel tuo profilo pubblico.
+            </p>
           </div>
 
-          {/* Portfolio */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-neutral-300">
-                Portfolio / Book{' '}
-                <span className="text-neutral-600 font-normal">(opzionale)</span>
+          <div className="border-t border-neutral-800" />
+
+          {/* SEZIONE 2 — Foto profilo */}
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-base font-medium">Foto profilo</h3>
+              <p className="text-sm text-neutral-500 mt-1">
+                La foto con cui gli altri ti riconosceranno su Slate.
               </p>
-              <span className="text-xs text-neutral-600">{portfolioFiles.length}/10</span>
+            </div>
+
+            {avatarPreview ? (
+              <div className="relative w-32 h-32 rounded-2xl overflow-hidden border border-neutral-700">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={avatarPreview}
+                  alt="Foto profilo"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <button
+                  onClick={() => { setAvatarFile(null); setAvatarPreview(null) }}
+                  className="absolute top-1.5 right-1.5 bg-black/60 rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-black/80 cursor-pointer transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center w-32 h-32 rounded-2xl border border-dashed border-neutral-700 hover:border-neutral-500 cursor-pointer transition-colors">
+                <span className="text-2xl text-neutral-600">👤</span>
+                <span className="text-xs text-neutral-600 mt-1">Carica</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleAvatarPhoto(e.target.files?.[0] ?? null)}
+                />
+              </label>
+            )}
+          </div>
+
+          <div className="border-t border-neutral-800" />
+
+          {/* SEZIONE 3 — Portfolio / Book */}
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-base font-medium">Portfolio / Book</h3>
+              <p className="text-sm text-neutral-500 mt-1 leading-relaxed">
+                Scegli le immagini che meglio rappresentano te e la qualità del tuo lavoro.
+                Sono richieste almeno 3 immagini per completare il profilo.
+              </p>
+            </div>
+
+            {/* Contatore */}
+            <div className="flex items-center justify-between">
+              <span
+                className={[
+                  'text-sm font-medium transition-colors',
+                  portfolioReady ? 'text-emerald-400' : 'text-neutral-500',
+                ].join(' ')}
+              >
+                {portfolioCount}/{PORTFOLIO_MAX} foto
+                {portfolioReady && ' ✓'}
+              </span>
+              {!portfolioReady && (
+                <span className="text-xs text-neutral-600">
+                  {PORTFOLIO_MIN - portfolioCount} ancora {PORTFOLIO_MIN - portfolioCount === 1 ? 'richiesta' : 'richieste'}
+                </span>
+              )}
             </div>
 
             <div className="grid grid-cols-3 gap-2">
               {portfolioPreviews.map((src, i) => (
                 <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-neutral-700">
-                  <Image src={src} alt={`Portfolio ${i + 1}`} fill className="object-cover" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={src} alt={`Portfolio ${i + 1}`} className="absolute inset-0 w-full h-full object-cover" />
                   <button
                     onClick={() => removePortfolioFile(i)}
-                    className="absolute top-1 right-1 bg-black/60 rounded-full p-0.5 text-xs hover:bg-black/80 cursor-pointer leading-none"
+                    className="absolute top-1 right-1 bg-black/60 rounded-full w-5 h-5 flex items-center justify-center text-[10px] hover:bg-black/80 cursor-pointer transition-colors leading-none"
                   >
                     ✕
                   </button>
                 </div>
               ))}
 
-              {portfolioFiles.length < 10 && (
+              {portfolioFiles.length < PORTFOLIO_MAX && (
                 <label className="aspect-square rounded-lg border border-dashed border-neutral-700 hover:border-neutral-500 cursor-pointer transition-colors flex items-center justify-center">
                   <span className="text-2xl text-neutral-600">+</span>
                   <input
@@ -376,6 +486,13 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
                 </label>
               )}
             </div>
+
+            {/* Tooltip blocco submit */}
+            {submitBlocked && (
+              <p className="text-xs text-amber-400 text-center">
+                Carica almeno 3 immagini per continuare
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -403,8 +520,10 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
           </Button>
         ) : (
           <Button
-            onClick={handleSubmit}
+            ref={submitBtnRef}
+            onClick={handleSubmitClick}
             loading={loading}
+            disabled={loading || !oldestPhotoFile || !avatarFile}
             className="flex-1"
           >
             {loading ? 'Caricamento...' : 'Invia profilo'}

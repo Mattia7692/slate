@@ -1,4 +1,3 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
@@ -131,18 +130,23 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
         </section>
       )}
 
-      {/* Foto anzianità */}
+      {/* Foto di verifica anzianità — visibile solo qui, non nel profilo pubblico */}
       {profile.oldest_photo_url && (
-        <section className="space-y-3">
-          <h2 className="text-sm font-medium text-neutral-400 uppercase tracking-wider">
-            Foto più vecchia (verifica anzianità)
-          </h2>
+        <section className="space-y-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+          <div>
+            <h2 className="text-sm font-medium text-amber-400 uppercase tracking-wider">
+              Foto di verifica anzianità
+            </h2>
+            <p className="text-xs text-neutral-500 mt-0.5">
+              Riservata agli amministratori — non visibile nel profilo pubblico
+            </p>
+          </div>
           <div className="relative w-full max-w-sm aspect-video rounded-xl overflow-hidden border border-neutral-800">
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src={profile.oldest_photo_url}
-              alt="Foto anzianità"
-              fill
-              className="object-cover"
+              alt="Foto di verifica anzianità"
+              className="absolute inset-0 w-full h-full object-cover"
             />
           </div>
         </section>
@@ -160,11 +164,11 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
                 key={item.id}
                 className="relative aspect-square rounded-lg overflow-hidden border border-neutral-800"
               >
-                <Image
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={item.image_url}
                   alt={item.caption ?? `Portfolio ${item.order_index + 1}`}
-                  fill
-                  className="object-cover"
+                  className="absolute inset-0 w-full h-full object-cover"
                 />
               </div>
             ))}

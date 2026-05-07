@@ -59,3 +59,14 @@ export async function updateApplicationStatus(
   if (error) return { error: error.message }
   return { error: null }
 }
+
+export async function deleteApplication(applicationId: string) {
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('applications')
+    .delete()
+    .eq('id', applicationId)
+
+  if (error) return { error: error.message }
+  return { error: null }
+}

@@ -171,9 +171,7 @@ export default async function AdminApplicationsPage({
               </div>
 
               {/* Azioni */}
-              {app.status === 'pending' && (
-                <ApplicationActions applicationId={app.id} />
-              )}
+              <ApplicationActions applicationId={app.id} status={app.status} />
             </div>
           ))}
         </div>

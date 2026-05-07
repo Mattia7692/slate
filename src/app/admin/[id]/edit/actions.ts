@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isFounder } from '@/lib/founder'
@@ -42,4 +43,44 @@ export async function adminUpdateProfile(profileId: string, formData: FormData) 
   revalidatePath(`/admin/${profileId}`)
   revalidatePath('/admin')
   redirect(`/admin/${profileId}`)
+}
+
+export async function awardFounderXp(profileId: string, delta: number) {
+  await requireAdmin()
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!isFounder(user?.id ?? '')) return { error: 'Solo il Founder può assegnare bonus XP.' }
+  if (isFounder(profileId)) return { error: 'Non puoi assegnare XP al Founder.' }
+  if (delta === 0) return { error: 'Il valore deve essere diverso da zero.' }
+
+  const admin = createAdminClient()
+
+  // Leggi XP attuali
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('xp')
+    .eq('id', profileId)
+    .single()
+
+  if (!profile) return { error: 'Profilo non trovato.' }
+
+  const newXp = Math.max(0, profile.xp + delta)
+
+  // Aggiorna XP e logga la transazione
+  const [{ error: updateError }, { error: logError }] = await Promise.all([
+    admin.from('profiles').update({ xp: newXp }).eq('id', profileId),
+    admin.from('xp_transactions').insert({
+      profile_id: profileId,
+      delta,
+      reason: 'founder_bonus',
+      project_id: null,
+    }),
+  ])
+
+  if (updateError) return { error: updateError.message }
+  if (logError) return { error: logError.message }
+
+  revalidatePath(`/admin/${profileId}`)
+  return { error: null, newXp }
 }

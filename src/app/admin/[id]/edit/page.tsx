@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isFounder } from '@/lib/founder'
@@ -27,6 +28,10 @@ export default async function AdminEditProfilePage({ params }: Props) {
   if (!profile) notFound()
   if (isFounder(id)) redirect(`/admin/${id}`)
 
+  const supabase = await createClient()
+  const { data: { user: currentUser } } = await supabase.auth.getUser()
+  const currentIsFounder = isFounder(currentUser?.id ?? '')
+
   return (
     <div className="max-w-lg mx-auto space-y-8">
       {/* Breadcrumb */}
@@ -49,7 +54,7 @@ export default async function AdminEditProfilePage({ params }: Props) {
         </div>
       </div>
 
-      <AdminEditForm profile={profile as Profile} />
+      <AdminEditForm profile={profile as Profile} isFounder={currentIsFounder} />
     </div>
   )
 }

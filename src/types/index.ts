@@ -29,6 +29,7 @@ export type XpReason =
   | 'no_show_penalty'
   | 'late_cancellation_penalty'
   | 'report_penalty'
+  | 'founder_bonus'
 
 // ============================================================
 // DATABASE ROWS

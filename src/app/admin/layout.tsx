@@ -1,10 +1,17 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { logout } from '@/app/auth/actions'
 import { AdminSidebar } from './AdminSidebar'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await requireAdmin()
+
+  const admin = createAdminClient()
+  const { count: pendingApplications } = await admin
+    .from('applications')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'pending')
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -30,7 +37,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <aside className="w-56 shrink-0 border-r border-neutral-800 px-3 py-6 flex flex-col justify-between">
-          <AdminSidebar />
+          <AdminSidebar pendingApplications={pendingApplications ?? 0} />
           <p className="text-xs text-neutral-700 px-3">v1 — area riservata</p>
         </aside>
 

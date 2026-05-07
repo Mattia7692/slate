@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
+import { submitApplication } from '@/app/applications/actions'
 import {
   Shield,
   FileText,
@@ -111,6 +112,8 @@ export default function LandingPage() {
   const [submitted, setSubmitted] = useState(false)
   const [form, setForm] = useState<FormState>({ role: null, email: '', portfolio: '', bio: '' })
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({})
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
 
   function openModal() {
     setModalOpen(true)
@@ -127,11 +130,25 @@ export default function LandingPage() {
     e.preventDefault()
     const newErrors: Partial<Record<keyof FormState, string>> = {}
     if (!form.role) newErrors.role = 'Seleziona il tuo ruolo.'
-    if (!form.email.trim()) newErrors.email = 'L\'email è obbligatoria.'
+    if (!form.email.trim()) newErrors.email = "L'email è obbligatoria."
     if (!form.portfolio.trim()) newErrors.portfolio = 'Inserisci il portfolio o il profilo Instagram.'
     if (!form.bio.trim()) newErrors.bio = 'Presentati brevemente.'
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return }
-    setSubmitted(true)
+
+    setSubmitError(null)
+    startTransition(async () => {
+      const result = await submitApplication({
+        role: form.role!,
+        email: form.email,
+        portfolio_url: form.portfolio,
+        bio: form.bio,
+      })
+      if (result.error) {
+        setSubmitError('Errore durante l\'invio. Riprova tra qualche secondo.')
+        return
+      }
+      setSubmitted(true)
+    })
   }
 
   return (
@@ -421,11 +438,18 @@ export default function LandingPage() {
                   {errors.bio && <p className="text-xs text-red-500">{errors.bio}</p>}
                 </div>
 
+                {submitError && (
+                  <p className="text-xs text-red-500 text-center">{submitError}</p>
+                )}
                 <button
                   type="submit"
-                  className="w-full bg-neutral-900 text-white rounded-xl py-4 text-sm font-semibold hover:bg-neutral-700 transition-colors"
+                  disabled={isPending}
+                  className="w-full bg-neutral-900 text-white rounded-xl py-4 text-sm font-semibold hover:bg-neutral-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Invia candidatura
+                  {isPending && (
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  )}
+                  {isPending ? 'Invio in corso...' : 'Invia candidatura'}
                 </button>
               </form>
             )}

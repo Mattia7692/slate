@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? '')
@@ -12,9 +13,20 @@ export async function requireAdmin() {
 
   if (!user) redirect('/auth/login')
 
-  if (!ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? '')) {
-    redirect('/dashboard')
-  }
+  // Controllo email hardcoded (founder + admin storici via env)
+  const emailIsAdmin = ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? '')
+
+  if (emailIsAdmin) return user
+
+  // Controllo colonna is_admin nel profilo
+  const admin = createAdminClient()
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile?.is_admin) redirect('/dashboard')
 
   return user
 }

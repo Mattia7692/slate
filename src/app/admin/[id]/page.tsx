@@ -1,10 +1,12 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getLevelName, computeSeniorityBonus } from '@/lib/xp'
 import { isFounder } from '@/lib/founder'
 import { AdminProfileActions } from './AdminProfileActions'
+import { ToggleAdminButton } from './ToggleAdminButton'
 import type { ProfileStatus } from '@/types'
 
 const STATUS_BADGE: Record<ProfileStatus, string> = {
@@ -28,6 +30,11 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
 
   const { id } = await params
   const admin = createAdminClient()
+
+  // Identità dell'utente corrente (per sapere se è il Founder)
+  const supabase = await createClient()
+  const { data: { user: currentUser } } = await supabase.auth.getUser()
+  const currentIsFounder = isFounder(currentUser?.id ?? '')
 
   const { data: profile } = await admin
     .from('profiles')
@@ -90,6 +97,12 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
             </span>
           ) : (
             <>
+              {/* Badge admin */}
+              {profile.is_admin && (
+                <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-400">
+                  Admin
+                </span>
+              )}
               <AdminProfileActions profileId={id} currentStatus={profile.status as ProfileStatus} />
               <Link
                 href={`/admin/${id}/edit`}
@@ -97,6 +110,14 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
               >
                 Modifica profilo →
               </Link>
+              {/* Toggle admin — solo Founder */}
+              {currentIsFounder && (
+                <ToggleAdminButton
+                  profileId={id}
+                  isAdmin={!!profile.is_admin}
+                  profileName={profile.full_name}
+                />
+              )}
             </>
           )}
         </div>

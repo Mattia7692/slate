@@ -92,9 +92,19 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
         {/* Azioni */}
         <div className="flex flex-col items-end gap-2 shrink-0">
           {isFounder(id) ? (
-            <span className="rounded-full border border-amber-400/40 bg-gradient-to-r from-amber-500/20 to-rose-500/20 px-2.5 py-1 text-xs font-semibold text-amber-300">
-              ✦ Founder
-            </span>
+            <div className="flex flex-col items-end gap-2">
+              <span className="rounded-full border border-amber-400/40 bg-gradient-to-r from-amber-500/20 to-rose-500/20 px-2.5 py-1 text-xs font-semibold text-amber-300">
+                ✦ Founder
+              </span>
+              {currentIsFounder && (
+                <Link
+                  href={`/admin/${id}/edit`}
+                  className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+                >
+                  Modifica profilo →
+                </Link>
+              )}
+            </div>
           ) : (
             <>
               {/* Badge admin */}

@@ -26,11 +26,13 @@ export default async function AdminEditProfilePage({ params }: Props) {
     .single()
 
   if (!profile) notFound()
-  if (isFounder(id)) redirect(`/admin/${id}`)
 
   const supabase = await createClient()
   const { data: { user: currentUser } } = await supabase.auth.getUser()
   const currentIsFounder = isFounder(currentUser?.id ?? '')
+
+  // Solo gli admin non-Founder vengono bloccati dal profilo Founder
+  if (isFounder(id) && !currentIsFounder) redirect(`/admin/${id}`)
 
   return (
     <div className="max-w-lg mx-auto space-y-8">

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { submitApplication } from '@/app/applications/actions'
 import {
   Shield,
@@ -11,7 +12,6 @@ import {
   UserCheck,
   Camera,
   Receipt,
-  CheckCircle,
   X,
 } from 'lucide-react'
 
@@ -109,17 +109,17 @@ const XP_LEVELS = [
 
 export default function LandingPage() {
   const [modalOpen, setModalOpen] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
   const [form, setForm] = useState<FormState>({ role: null, email: '', portfolio: '', bio: '' })
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const router = useRouter()
 
   function openModal() {
     setModalOpen(true)
-    setSubmitted(false)
     setForm({ role: null, email: '', portfolio: '', bio: '' })
     setErrors({})
+    setSubmitError(null)
   }
 
   function closeModal() {
@@ -144,10 +144,10 @@ export default function LandingPage() {
         bio: form.bio,
       })
       if (result.error) {
-        setSubmitError('Errore durante l\'invio. Riprova tra qualche secondo.')
+        setSubmitError("Errore durante l'invio. Riprova tra qualche secondo.")
         return
       }
-      setSubmitted(true)
+      router.push('/candidatura/grazie')
     })
   }
 
@@ -353,26 +353,8 @@ export default function LandingPage() {
               </button>
             </div>
 
-            {submitted ? (
-              /* Messaggio di successo */
-              <div className="px-8 py-12 text-center space-y-4">
-                <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mx-auto">
-                  <CheckCircle size={28} className="text-emerald-500" />
-                </div>
-                <h3 className="text-xl font-bold">Candidatura inviata</h3>
-                <p className="text-neutral-500 leading-relaxed text-sm">
-                  Ti risponderemo entro 7 giorni all&apos;email che hai indicato. Nel frattempo, se conosci già qualcuno su Slate, chiedigli un codice invito — accelera i tempi.
-                </p>
-                <button
-                  onClick={closeModal}
-                  className="mt-4 text-sm text-neutral-400 hover:text-neutral-700 transition-colors"
-                >
-                  Chiudi
-                </button>
-              </div>
-            ) : (
-              /* Form */
-              <form onSubmit={handleSubmit} className="px-8 py-8 space-y-6">
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="px-8 py-8 space-y-6">
                 {/* Ruolo */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-neutral-700">Sei</label>
@@ -451,8 +433,7 @@ export default function LandingPage() {
                   )}
                   {isPending ? 'Invio in corso...' : 'Invia candidatura'}
                 </button>
-              </form>
-            )}
+            </form>
           </div>
         </div>
       )}

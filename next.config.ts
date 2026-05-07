@@ -1,7 +1,21 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+  images: {
+    remotePatterns: [
+      {
+        // Supabase Storage
+        protocol: 'https',
+        hostname: '*.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
+      {
+        // Placeholder immagini fake (solo sviluppo)
+        protocol: 'https',
+        hostname: 'picsum.photos',
+      },
+    ],
+  },
+}
 
-export default nextConfig;
+export default nextConfig

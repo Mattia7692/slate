@@ -10,7 +10,7 @@ Il nome viene dal "ciak" (slate in inglese) — l'oggetto che segna l'inizio di 
 
 ## Stack tecnico
 
-- **Framework:** Next.js 14 con App Router e TypeScript
+- **Framework:** Next.js 16 con App Router e TypeScript
 - **Styling:** Tailwind CSS
 - **Database + Auth + Storage:** Supabase
 - **Pagamenti:** Stripe Connect (escrow tra le parti)
@@ -100,6 +100,7 @@ La piattaforma guadagna solo quando crea valore reale.
 - id (uuid, FK → auth.users)
 - role: 'photographer' | 'model'
 - full_name, bio, city, instagram_url
+- avatar_url (storage path, nullable) — foto profilo
 - years_in_industry (integer)
 - oldest_photo_url (storage path)
 - xp (integer, default 0)
@@ -174,13 +175,16 @@ La piattaforma guadagna solo quando crea valore reale.
     /edit             ← modifica il proprio profilo
   /projects
     /[id]             ← progetto specifico (brief, chat, stato)
-  /admin              ← approvazione profili (solo admin)
+  /admin                   ← pannello admin con sidebar (solo ADMIN_EMAILS)
+    /invite-codes          ← gestione codici invito
+    /onboarding-preview    ← anteprima flusso onboarding
+    /[id]                  ← dettaglio e approvazione profilo
 /components
   /ui                 ← componenti base (button, card, badge, input)
-  /profile            ← ProfileCard, PortfolioGrid, XPBadge
+  /profile            ← ProfileCard, PortfolioGrid, XPBadge, ProfileAvatar, ProfileAvatarUpload
   /project            ← BriefForm, ChatBox, ProjectStatus
 /lib
-  /supabase           ← client, server, middleware
+  /supabase           ← client, server, proxy (middleware Next.js 16)
   /stripe             ← helpers pagamento
   /xp                 ← logica calcolo livelli e XP
   /utils
@@ -220,15 +224,22 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 ## Stato attuale del progetto
 
 **v1 in sviluppo — scope:**
-- Registrazione con codice invito ✓ in sviluppo
-- Profili fotografo e modella
-- Sistema XP e livelli
-- Esplora profili con filtri
-- Brief strutturato
-- Pagamento escrow con Stripe Connect
-- Recensioni post-shoot
-- Chat di progetto
-- Pannello admin per approvazione profili
+- Registrazione con codice invito ✓ funzionante
+- Onboarding profilo (ruolo, bio, portfolio, foto anzianità) ✓ funzionante
+- Modifica profilo (/profile/edit) ✓ funzionante
+- Foto profilo con badge ruolo (avatar_url su profiles) ✓ funzionante
+- Pannello admin con sidebar ✓ funzionante
+  - Gestione profili (approvazione/sospensione) ✓
+  - Codici invito ✓
+  - Anteprima onboarding ✓
+- Sistema XP e livelli ✓ logica implementata
+- Profilo pubblico /profile/[id] ✓ funzionante
+- Middleware auth (proxy.ts — Next.js 16) ✓ funzionante
+- Esplora profili con filtri — da fare
+- Brief strutturato — da fare
+- Pagamento escrow con Stripe Connect — da fare
+- Recensioni post-shoot — da fare
+- Chat di progetto — da fare
 
 **v2 — rimandato:**
 - MUA, stylist, location

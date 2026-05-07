@@ -9,9 +9,10 @@ import type { ProfileStatus } from '@/types'
 interface AdminProfileActionsProps {
   profileId: string
   currentStatus: ProfileStatus
+  isSelf?: boolean
 }
 
-export function AdminProfileActions({ profileId, currentStatus }: AdminProfileActionsProps) {
+export function AdminProfileActions({ profileId, currentStatus, isSelf = false }: AdminProfileActionsProps) {
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
 
@@ -38,7 +39,7 @@ export function AdminProfileActions({ profileId, currentStatus }: AdminProfileAc
           Approva
         </Button>
       )}
-      {currentStatus !== 'suspended' && (
+      {currentStatus !== 'suspended' && !isSelf && (
         <Button
           size="sm"
           variant="danger"

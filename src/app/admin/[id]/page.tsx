@@ -91,44 +91,40 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
 
         {/* Azioni */}
         <div className="flex flex-col items-end gap-2 shrink-0">
-          {isFounder(id) ? (
-            <div className="flex flex-col items-end gap-2">
-              <span className="rounded-full border border-amber-400/40 bg-gradient-to-r from-amber-500/20 to-rose-500/20 px-2.5 py-1 text-xs font-semibold text-amber-300">
-                ✦ Founder
-              </span>
-              {currentIsFounder && (
-                <Link
-                  href={`/admin/${id}/edit`}
-                  className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
-                >
-                  Modifica profilo →
-                </Link>
-              )}
-            </div>
-          ) : (
-            <>
-              {/* Badge admin */}
-              {profile.is_admin && (
-                <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-400">
-                  Admin
-                </span>
-              )}
-              <AdminProfileActions profileId={id} currentStatus={profile.status as ProfileStatus} />
-              <Link
-                href={`/admin/${id}/edit`}
-                className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
-              >
-                Modifica profilo →
-              </Link>
-              {/* Toggle admin — solo Founder */}
-              {currentIsFounder && (
-                <ToggleAdminButton
-                  profileId={id}
-                  isAdmin={!!profile.is_admin}
-                  profileName={profile.full_name}
-                />
-              )}
-            </>
+          {/* Badge Founder */}
+          {isFounder(id) && (
+            <span className="rounded-full border border-amber-400/40 bg-gradient-to-r from-amber-500/20 to-rose-500/20 px-2.5 py-1 text-xs font-semibold text-amber-300">
+              ✦ Founder
+            </span>
+          )}
+          {/* Badge Admin */}
+          {!isFounder(id) && profile.is_admin && (
+            <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-400">
+              Admin
+            </span>
+          )}
+          {/* Controlli stato — visibili sempre, "Sospendi" nascosto su se stessi */}
+          <AdminProfileActions
+            profileId={id}
+            currentStatus={profile.status as ProfileStatus}
+            isSelf={currentUser?.id === id}
+          />
+          {/* Modifica profilo — per tutti (solo Founder può accedere al proprio) */}
+          {(!isFounder(id) || currentIsFounder) && (
+            <Link
+              href={`/admin/${id}/edit`}
+              className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+            >
+              Modifica profilo →
+            </Link>
+          )}
+          {/* Toggle admin — solo Founder, solo su profili non-Founder */}
+          {currentIsFounder && !isFounder(id) && (
+            <ToggleAdminButton
+              profileId={id}
+              isAdmin={!!profile.is_admin}
+              profileName={profile.full_name}
+            />
           )}
         </div>
       </div>

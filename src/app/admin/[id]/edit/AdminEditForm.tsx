@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { adminUpdateProfile, awardFounderXp } from './actions'
+import { AdminAvatarUpload } from './AdminAvatarUpload'
 import type { Profile } from '@/types'
 
 export function AdminEditForm({
@@ -41,6 +42,14 @@ export function AdminEditForm({
 
   return (
     <div className="space-y-10">
+      {/* ── AVATAR ──────────────────────────────────── */}
+      <AdminAvatarUpload
+        profileId={profile.id}
+        avatarUrl={profile.avatar_url ?? null}
+        fullName={profile.full_name}
+        role={profile.role}
+      />
+
       {/* ── FORM PRINCIPALE ─────────────────────────── */}
       <form
         action={(formData) => {

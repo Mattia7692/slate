@@ -55,6 +55,41 @@ export async function adminUpdateProfile(profileId: string, formData: FormData) 
   redirect(`/admin/${profileId}`)
 }
 
+export async function uploadAvatarAdmin(
+  profileId: string,
+  formData: FormData,
+): Promise<{ url?: string; error?: string }> {
+  await requireAdmin()
+
+  const file = formData.get('file') as File | null
+  if (!file || file.size === 0) return { error: 'Nessun file selezionato.' }
+
+  const admin = createAdminClient()
+  const ext = file.name.split('.').pop() ?? 'jpg'
+  const path = `${profileId}/avatar.${ext}`
+  const buffer = Buffer.from(await file.arrayBuffer())
+
+  const { error: uploadError } = await admin.storage
+    .from('avatars')
+    .upload(path, buffer, { contentType: file.type, cacheControl: '3600', upsert: true })
+
+  if (uploadError) return { error: uploadError.message }
+
+  const { data } = admin.storage.from('avatars').getPublicUrl(path)
+  const url = `${data.publicUrl}?t=${Date.now()}`
+
+  const { error: updateError } = await admin
+    .from('profiles')
+    .update({ avatar_url: url })
+    .eq('id', profileId)
+
+  if (updateError) return { error: updateError.message }
+
+  revalidatePath(`/admin/${profileId}`)
+  revalidatePath(`/admin/${profileId}/edit`)
+  return { url }
+}
+
 export async function awardFounderXp(profileId: string, delta: number) {
   await requireAdmin()
 

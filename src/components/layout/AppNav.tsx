@@ -33,12 +33,12 @@ export function AppNav({ userInitials, userId, avatarUrl, notifications }: AppNa
   return (
     <>
       {/* ── HEADER ─────────────────────────────────────────────── */}
-      <header className="border-b border-neutral-800 px-4 md:px-5 h-14 md:h-32 flex items-center justify-between gap-4">
+      <header className="border-b border-neutral-800 px-4 md:px-5 h-28 md:h-32 flex items-center justify-between gap-4">
 
         {/* Logo */}
         <Link href="/dashboard" className="shrink-0" onClick={closeMenu}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Slate" className="h-10 md:h-24 w-auto mix-blend-screen" />
+          <img src="/logo.png" alt="Slate" className="h-20 md:h-24 w-auto mix-blend-screen" />
         </Link>
 
         {/* Desktop nav */}

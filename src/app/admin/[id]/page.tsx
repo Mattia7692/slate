@@ -125,13 +125,22 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
               Admin
             </span>
           )}
-          {/* Controlli stato — visibili sempre, "Sospendi" nascosto su se stessi */}
-          <AdminProfileActions
-            profileId={id}
-            currentStatus={profile.status as ProfileStatus}
-            isSelf={currentUser?.id === id}
-          />
-          {/* Modifica profilo — per tutti (solo Founder può accedere al proprio) */}
+          {/* Controlli stato + promuovi admin — stessa riga */}
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <AdminProfileActions
+              profileId={id}
+              currentStatus={profile.status as ProfileStatus}
+              isSelf={currentUser?.id === id}
+            />
+            {currentIsFounder && !isFounder(id) && (
+              <ToggleAdminButton
+                profileId={id}
+                isAdmin={!!profile.is_admin}
+                profileName={profile.full_name}
+              />
+            )}
+          </div>
+          {/* Modifica profilo */}
           {(!isFounder(id) || currentIsFounder) && (
             <Link
               href={`/admin/${id}/edit`}
@@ -139,14 +148,6 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
             >
               Modifica profilo →
             </Link>
-          )}
-          {/* Toggle admin — solo Founder, solo su profili non-Founder */}
-          {currentIsFounder && !isFounder(id) && (
-            <ToggleAdminButton
-              profileId={id}
-              isAdmin={!!profile.is_admin}
-              profileName={profile.full_name}
-            />
           )}
           {/* Elimina profilo — solo su profili non-Founder, non se stessi */}
           {!isFounder(id) && currentUser?.id !== id && (

@@ -170,7 +170,8 @@ export default async function MePage() {
     <div className="min-h-screen">
       <AppNav userInitials={userInitials} userId={user.id} avatarUrl={(profile as Profile).avatar_url ?? null} notifications={notifications} />
 
-      <div className="flex min-h-[calc(100vh-128px)]">
+      <div className="flex items-start justify-center px-6 py-8">
+        <div className="w-full max-w-4xl rounded-2xl border border-neutral-800 overflow-hidden flex" style={{ minHeight: '600px' }}>
 
         {/* ── SIDEBAR ──────────────────────────────────────────── */}
         <aside className="w-52 border-r border-neutral-800 bg-neutral-950 p-4 flex flex-col shrink-0">
@@ -375,6 +376,7 @@ export default async function MePage() {
           </div>
 
         </main>
+        </div>
       </div>
     </div>
   )

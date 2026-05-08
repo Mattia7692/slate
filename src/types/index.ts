@@ -87,13 +87,22 @@ export interface Project {
 
 export interface ProjectInvite {
   id: string
-  sender_id: string
-  receiver_id: string
-  message: string | null
+  from_profile_id: string
+  to_profile_id: string
+  notes: string | null
+  creative_idea: string | null
+  location: string | null
+  alternative_amount: number | null
+  moodboard_urls: string[]
   status: InviteStatus
-  payer_role: PayerRole
-  amount: number
+  proposed_payer: PayerRole
+  proposed_amount: number
+  from_xp_snapshot: number | null
+  to_xp_snapshot: number | null
+  title: string | null
+  project_id: string | null
   created_at: string
+  responded_at: string | null
 }
 
 export interface MoodboardItem {
@@ -225,8 +234,8 @@ export interface ProjectWithParticipants extends Project {
 }
 
 export interface ProjectInviteWithProfiles extends ProjectInvite {
-  sender: Pick<Profile, 'id' | 'full_name' | 'role' | 'avatar_url' | 'level'>
-  receiver: Pick<Profile, 'id' | 'full_name' | 'role' | 'level'>
+  from_profile: Pick<Profile, 'id' | 'full_name' | 'role' | 'avatar_url' | 'level'>
+  to_profile: Pick<Profile, 'id' | 'full_name' | 'role' | 'level'>
 }
 
 export interface ReviewWithReviewer extends Review {

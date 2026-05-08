@@ -21,8 +21,8 @@ export async function sendInvite(receiverId: string, payload: SendInvitePayload)
   if (!user) redirect('/auth/login')
 
   const [{ data: senderProfile }, { data: receiverProfile }] = await Promise.all([
-    supabase.from('profiles').select('id, role, level, full_name').eq('id', user.id).single(),
-    supabase.from('profiles').select('id, role, level, full_name').eq('id', receiverId).single(),
+    supabase.from('profiles').select('id, role, level, full_name, xp').eq('id', user.id).single(),
+    supabase.from('profiles').select('id, role, level, full_name, xp').eq('id', receiverId).single(),
   ])
 
   if (!senderProfile) return { error: 'Profilo non trovato.' }
@@ -45,8 +45,8 @@ export async function sendInvite(receiverId: string, payload: SendInvitePayload)
   const { data: existing } = await adminClient
     .from('project_invites')
     .select('id')
-    .eq('sender_id', user.id)
-    .eq('receiver_id', receiverId)
+    .eq('from_profile_id', user.id)
+    .eq('to_profile_id', receiverId)
     .eq('status', 'pending')
     .maybeSingle()
 
@@ -55,24 +55,23 @@ export async function sendInvite(receiverId: string, payload: SendInvitePayload)
   const { data: invite, error: inviteError } = await adminClient
     .from('project_invites')
     .insert({
-      sender_id: user.id,
-      receiver_id: receiverId,
-      message: payload.message,
+      from_profile_id: user.id,
+      to_profile_id: receiverId,
+      notes: payload.message,
       creative_idea: payload.creative_idea,
       location: payload.location,
       alternative_amount: payload.alternative_amount,
       moodboard_urls: payload.moodboard_urls,
       status: 'pending',
-      payer_role: payerRole,
-      amount,
+      proposed_payer: payerRole,
+      proposed_amount: amount,
+      from_xp_snapshot: senderProfile.xp,
+      to_xp_snapshot: receiverProfile.xp,
     })
     .select()
     .single()
 
   if (inviteError) return { error: inviteError.message }
-
-  const senderLabel =
-    senderProfile.role === 'photographer' ? 'Fotografo' : 'Modella / Modello'
 
   await adminClient.from('notifications').insert({
     profile_id: receiverId,
@@ -98,14 +97,14 @@ export async function acceptInvite(inviteId: string) {
     .from('project_invites')
     .select(`
       *,
-      sender:profiles!project_invites_sender_id_fkey(id, role, level, full_name),
-      receiver:profiles!project_invites_receiver_id_fkey(id, role, level, full_name)
+      sender:profiles!project_invites_from_profile_id_fkey(id, role, level, full_name),
+      receiver:profiles!project_invites_to_profile_id_fkey(id, role, level, full_name)
     `)
     .eq('id', inviteId)
     .single()
 
   if (!invite) return { error: 'Invito non trovato.' }
-  if (invite.receiver_id !== user.id) return { error: 'Non autorizzato.' }
+  if (invite.to_profile_id !== user.id) return { error: 'Non autorizzato.' }
   if (invite.status !== 'pending') return { error: 'Invito non più disponibile.' }
 
   const sender = invite.sender as { id: string; role: string; level: number; full_name: string }
@@ -119,10 +118,10 @@ export async function acceptInvite(inviteId: string) {
     .insert({
       photographer_id: photographerId,
       model_id: modelId,
-      proposed_by: invite.sender_id,
+      proposed_by: invite.from_profile_id,
       status: 'accepted',
-      payer_role: invite.payer_role,
-      amount: invite.amount,
+      payer_role: invite.proposed_payer,
+      amount: invite.proposed_amount,
       invite_id: inviteId,
     })
     .select()
@@ -133,11 +132,11 @@ export async function acceptInvite(inviteId: string) {
   await Promise.all([
     adminClient
       .from('project_invites')
-      .update({ status: 'accepted' })
+      .update({ status: 'accepted', responded_at: new Date().toISOString() })
       .eq('id', inviteId),
 
     adminClient.from('notifications').insert({
-      profile_id: invite.sender_id,
+      profile_id: invite.from_profile_id,
       type: 'invite_accepted',
       title: `${receiver.full_name} ha accettato la tua proposta`,
       body: null,
@@ -145,7 +144,6 @@ export async function acceptInvite(inviteId: string) {
       project_id: project.id,
     }),
 
-    // Segna la notifica originale come letta
     adminClient
       .from('notifications')
       .update({ read_at: new Date().toISOString() })
@@ -167,23 +165,23 @@ export async function declineInvite(inviteId: string) {
 
   const { data: invite } = await adminClient
     .from('project_invites')
-    .select('sender_id, receiver_id, receiver:profiles!project_invites_receiver_id_fkey(full_name)')
+    .select('from_profile_id, to_profile_id, receiver:profiles!project_invites_to_profile_id_fkey(full_name)')
     .eq('id', inviteId)
     .single()
 
   if (!invite) return { error: 'Invito non trovato.' }
-  if (invite.receiver_id !== user.id) return { error: 'Non autorizzato.' }
+  if (invite.to_profile_id !== user.id) return { error: 'Non autorizzato.' }
 
   const receiver = invite.receiver as unknown as { full_name: string }
 
   await Promise.all([
     adminClient
       .from('project_invites')
-      .update({ status: 'declined' })
+      .update({ status: 'declined', responded_at: new Date().toISOString() })
       .eq('id', inviteId),
 
     adminClient.from('notifications').insert({
-      profile_id: invite.sender_id,
+      profile_id: invite.from_profile_id,
       type: 'invite_declined',
       title: `${receiver.full_name} ha rifiutato la tua proposta`,
       body: null,

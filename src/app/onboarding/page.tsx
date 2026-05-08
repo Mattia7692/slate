@@ -18,10 +18,11 @@ export default async function OnboardingPage() {
   if (profile) redirect('/dashboard')
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 py-16">
+    <main className="min-h-screen flex items-center justify-center px-4 py-8 sm:py-16">
       <div className="w-full max-w-lg">
-        <div className="text-center mb-10 space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">Benvenuto su Slate</h1>
+        <div className="text-center mb-8 sm:mb-10">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="Slate" className="h-12 w-auto mx-auto mix-blend-screen mb-5" />
           <p className="text-sm text-neutral-400">
             Completa il tuo profilo per essere approvato dal team.
           </p>

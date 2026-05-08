@@ -256,19 +256,19 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
       {step === 0 && (
         <div className="space-y-4">
           <h2 className="text-lg font-medium">Qual è il tuo ruolo?</h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             {(['photographer', 'model'] as const).map((role) => (
               <button
                 key={role}
                 onClick={() => set('role', role)}
                 className={[
-                  'flex flex-col items-center gap-3 rounded-xl border p-6 transition-colors cursor-pointer',
+                  'flex flex-col items-center gap-3 rounded-xl border p-5 sm:p-6 transition-colors cursor-pointer',
                   form.role === role
                     ? 'border-white bg-white/5'
                     : 'border-neutral-800 hover:border-neutral-600',
                 ].join(' ')}
               >
-                <span className="text-3xl">{role === 'photographer' ? '📷' : '🧍'}</span>
+                <span className="text-4xl">{role === 'photographer' ? '📷' : '🧍'}</span>
                 <span className="text-sm font-medium">
                   {role === 'photographer' ? 'Fotografo' : 'Modella / Modello'}
                 </span>
@@ -370,15 +370,16 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
                 />
                 <button
                   onClick={() => { setOldestPhotoFile(null); setOldestPhotoPreview(null) }}
-                  className="absolute top-2 right-2 bg-black/60 rounded-full w-7 h-7 flex items-center justify-center text-xs hover:bg-black/80 cursor-pointer transition-colors"
+                  className="absolute top-2 right-2 bg-black/60 rounded-full w-8 h-8 flex items-center justify-center text-sm hover:bg-black/80 cursor-pointer transition-colors"
                 >
                   ✕
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center w-full h-36 rounded-xl border border-dashed border-neutral-700 hover:border-neutral-500 cursor-pointer transition-colors">
-                <span className="text-sm text-neutral-500">Clicca per caricare</span>
-                <span className="text-xs text-neutral-600 mt-1">JPG, PNG, WebP — max 10MB</span>
+              <label className="flex flex-col items-center justify-center w-full h-44 rounded-xl border border-dashed border-neutral-700 active:border-neutral-500 hover:border-neutral-500 cursor-pointer transition-colors">
+                <span className="text-2xl text-neutral-600 mb-2">📎</span>
+                <span className="text-sm text-neutral-500">Tocca per caricare</span>
+                <span className="text-xs text-neutral-600 mt-1">JPG, PNG, WebP</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -405,7 +406,7 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
             </div>
 
             {avatarPreview ? (
-              <div className="relative w-32 h-32 rounded-2xl overflow-hidden border border-neutral-700">
+              <div className="relative w-36 h-36 rounded-2xl overflow-hidden border border-neutral-700">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={avatarPreview}
@@ -414,15 +415,15 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
                 />
                 <button
                   onClick={() => { setAvatarFile(null); setAvatarPreview(null) }}
-                  className="absolute top-1.5 right-1.5 bg-black/60 rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-black/80 cursor-pointer transition-colors"
+                  className="absolute top-2 right-2 bg-black/60 rounded-full w-8 h-8 flex items-center justify-center text-sm hover:bg-black/80 cursor-pointer transition-colors"
                 >
                   ✕
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center w-32 h-32 rounded-2xl border border-dashed border-neutral-700 hover:border-neutral-500 cursor-pointer transition-colors">
-                <span className="text-2xl text-neutral-600">👤</span>
-                <span className="text-xs text-neutral-600 mt-1">Carica</span>
+              <label className="flex flex-col items-center justify-center w-36 h-36 rounded-2xl border border-dashed border-neutral-700 active:border-neutral-500 hover:border-neutral-500 cursor-pointer transition-colors">
+                <span className="text-3xl text-neutral-600">👤</span>
+                <span className="text-xs text-neutral-600 mt-2">Tocca per caricare</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -478,8 +479,8 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
               ))}
 
               {portfolioFiles.length < PORTFOLIO_MAX && (
-                <label className="aspect-square rounded-lg border border-dashed border-neutral-700 hover:border-neutral-500 cursor-pointer transition-colors flex items-center justify-center">
-                  <span className="text-2xl text-neutral-600">+</span>
+                <label className="aspect-square rounded-lg border border-dashed border-neutral-700 active:border-neutral-500 hover:border-neutral-500 cursor-pointer transition-colors flex items-center justify-center">
+                  <span className="text-3xl text-neutral-600">+</span>
                   <input
                     type="file"
                     accept="image/*"

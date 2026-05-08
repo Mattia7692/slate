@@ -6,12 +6,12 @@ import { usePathname } from 'next/navigation'
 import { logout } from '@/app/auth/actions'
 
 const NAV_ITEMS = [
-  { label: 'Gestione profili',    href: '/admin',                    exact: true },
-  { label: 'Candidature',         href: '/admin/applications',        exact: false },
-  { label: 'Codici invito',       href: '/admin/invite-codes',        exact: false },
-  { label: 'Progetti',            href: '/admin/projects',            exact: false },
-  { label: 'Monitoraggio chat',   href: '/admin/messages',            exact: false },
-  { label: 'Anteprima onboarding',href: '/admin/onboarding-preview',  exact: false },
+  { label: 'Gestione profili',     href: '/admin',                    exact: true },
+  { label: 'Candidature',          href: '/admin/applications',        exact: false },
+  { label: 'Codici invito',        href: '/admin/invite-codes',        exact: false },
+  { label: 'Progetti',             href: '/admin/projects',            exact: false },
+  { label: 'Monitoraggio chat',    href: '/admin/messages',            exact: false },
+  { label: 'Anteprima onboarding', href: '/admin/onboarding-preview',  exact: false },
 ]
 
 interface Props {
@@ -30,15 +30,15 @@ export function AdminHeader({ email, pendingApplications }: Props) {
   return (
     <>
       {/* ── TOPBAR ─────────────────────────────────────────────── */}
-      <header className="bg-white border-b border-neutral-200 px-4 md:px-5 h-34 md:h-32 flex items-center justify-between shrink-0">
+      <header className="bg-orange-950 border-b border-orange-900 px-4 md:px-5 h-34 md:h-32 flex items-center justify-between shrink-0">
 
         {/* Logo + badge */}
         <div className="flex items-center gap-3">
           <Link href="/admin" onClick={() => setMenuOpen(false)}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Slate" className="h-30 md:h-24 w-auto invert mix-blend-multiply" />
+            <img src="/logo.png" alt="Slate" className="h-30 md:h-24 w-auto mix-blend-screen" />
           </Link>
-          <span className="hidden md:inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+          <span className="hidden md:inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-400 bg-orange-900/60 border border-orange-800 px-2.5 py-1 rounded-full">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
             Admin
           </span>
@@ -46,11 +46,11 @@ export function AdminHeader({ email, pendingApplications }: Props) {
 
         {/* Desktop: email + logout */}
         <div className="hidden md:flex items-center gap-4">
-          <span className="text-xs text-neutral-400">{email}</span>
+          <span className="text-xs text-orange-700">{email}</span>
           <form action={logout}>
             <button
               type="submit"
-              className="text-xs text-neutral-500 hover:text-neutral-900 transition-colors cursor-pointer"
+              className="text-xs text-neutral-500 hover:text-neutral-200 transition-colors cursor-pointer"
             >
               Esci
             </button>
@@ -59,7 +59,7 @@ export function AdminHeader({ email, pendingApplications }: Props) {
 
         {/* Mobile: hamburger */}
         <button
-          className="md:hidden flex items-center justify-center w-10 h-10 rounded-lg text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
+          className="md:hidden flex items-center justify-center w-10 h-10 rounded-lg text-neutral-400 hover:text-neutral-200 hover:bg-orange-900 transition-colors"
           onClick={() => setMenuOpen((v) => !v)}
           aria-label={menuOpen ? 'Chiudi menu' : 'Apri menu'}
         >
@@ -80,15 +80,15 @@ export function AdminHeader({ email, pendingApplications }: Props) {
 
       {/* ── MOBILE DROPDOWN ────────────────────────────────────── */}
       {menuOpen && (
-        <div className="md:hidden bg-white border-b border-neutral-200">
+        <div className="md:hidden bg-orange-950 border-b border-orange-900">
 
           {/* Email + logout */}
-          <div className="px-5 py-3 flex items-center justify-between border-b border-neutral-100">
-            <span className="text-xs text-neutral-500 truncate">{email}</span>
+          <div className="px-5 py-3 flex items-center justify-between border-b border-orange-900/60">
+            <span className="text-xs text-orange-700 truncate">{email}</span>
             <form action={logout}>
               <button
                 type="submit"
-                className="text-xs text-neutral-500 hover:text-neutral-900 transition-colors cursor-pointer ml-4 shrink-0"
+                className="text-xs text-neutral-500 hover:text-neutral-200 transition-colors cursor-pointer ml-4 shrink-0"
               >
                 Esci
               </button>
@@ -98,7 +98,7 @@ export function AdminHeader({ email, pendingApplications }: Props) {
           {/* Nav */}
           <nav className="px-3 py-3 flex flex-col gap-0.5">
             <div className="px-3 py-2 mb-0.5">
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-amber-600 uppercase tracking-wider">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-amber-400 uppercase tracking-wider">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                 Area admin
               </span>
@@ -116,8 +116,8 @@ export function AdminHeader({ email, pendingApplications }: Props) {
                   className={[
                     'flex items-center gap-2 px-3 py-3 rounded-xl text-sm transition-colors',
                     active
-                      ? 'bg-amber-50 text-amber-900 font-medium'
-                      : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900',
+                      ? 'bg-orange-900 text-neutral-100 font-medium'
+                      : 'text-neutral-400 hover:bg-orange-900/60 hover:text-neutral-200',
                   ].join(' ')}
                 >
                   <span className="flex-1">{label}</span>

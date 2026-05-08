@@ -76,8 +76,6 @@ export interface Project {
   id: string
   photographer_id: string
   model_id: string
-  proposed_by: string | null
-  invite_id: string | null
   status: ProjectStatus
   payer_role: PayerRole
   amount: number

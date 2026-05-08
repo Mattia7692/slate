@@ -132,11 +132,9 @@ export async function acceptInvite(inviteId: string) {
     .insert({
       photographer_id: photographerId,
       model_id: modelId,
-      proposed_by: invite.from_profile_id,
       status: 'accepted',
       payer_role: payerRole,
       amount: invite.proposed_amount,
-      invite_id: inviteId,
     })
     .select()
     .single()
@@ -209,6 +207,65 @@ export async function declineInvite(inviteId: string) {
   ])
 
   return { error: null }
+}
+
+// ── Dettagli invito (per modal) ───────────────────────────────────
+
+export interface InviteDetails {
+  id: string
+  creative_idea: string | null
+  location: string | null
+  notes: string | null
+  moodboard_urls: string[]
+  proposed_payer: string
+  proposed_amount: number
+  alternative_amount: number | null
+  created_at: string
+  from_profile: { id: string; full_name: string; role: string; level: number; avatar_url: string | null }
+  to_profile: { id: string; full_name: string; role: string; level: number; avatar_url: string | null }
+}
+
+export async function getInviteDetails(inviteId: string): Promise<{ data: InviteDetails | null; error: string | null }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { data: null, error: 'Non autenticato.' }
+
+  const adminClient = createAdminClient()
+  const { data, error } = await adminClient
+    .from('project_invites')
+    .select(`
+      id, creative_idea, location, notes, moodboard_urls,
+      proposed_payer, proposed_amount, alternative_amount, created_at,
+      from_profile:profiles!project_invites_from_profile_id_fkey(id, full_name, role, level, avatar_url),
+      to_profile:profiles!project_invites_to_profile_id_fkey(id, full_name, role, level, avatar_url)
+    `)
+    .eq('id', inviteId)
+    .eq('status', 'pending')
+    .single()
+
+  if (error || !data) return { data: null, error: 'Proposta non trovata.' }
+
+  // Verifica che l'utente sia coinvolto
+  const from = data.from_profile as unknown as InviteDetails['from_profile']
+  const to = data.to_profile as unknown as InviteDetails['to_profile']
+  if (from.id !== user.id && to.id !== user.id) return { data: null, error: 'Non autorizzato.' }
+
+  return {
+    data: {
+      id: data.id,
+      creative_idea: data.creative_idea,
+      location: data.location,
+      notes: data.notes,
+      moodboard_urls: (data.moodboard_urls as string[]) ?? [],
+      proposed_payer: data.proposed_payer as string,
+      proposed_amount: data.proposed_amount,
+      alternative_amount: data.alternative_amount,
+      created_at: data.created_at,
+      from_profile: from,
+      to_profile: to,
+    },
+    error: null,
+  }
 }
 
 // ── Segna notifica come letta ─────────────────────────────────────

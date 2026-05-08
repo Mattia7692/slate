@@ -1,14 +1,23 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ProfileEditForm } from './ProfileEditForm'
 import { OldestPhotoSection } from './OldestPhotoSection'
 import type { PhotoExif } from '@/lib/exif'
-import { XPBadge } from '@/components/profile/XPBadge'
+import { getLevelProgress, getLevelName } from '@/lib/xp'
 import { isFounder } from '@/lib/founder'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
 import { AppNav } from '@/components/layout/AppNav'
 import type { Profile, PortfolioItem, Notification } from '@/types'
+
+const LEVEL_BAR_COLOR: Record<number, string> = {
+  1: 'bg-neutral-500',
+  2: 'bg-blue-500',
+  3: 'bg-violet-500',
+  4: 'bg-amber-500',
+  5: 'bg-orange-500',
+}
 
 export default async function ProfileEditPage() {
   const supabase = await createClient()
@@ -17,17 +26,22 @@ export default async function ProfileEditPage() {
   if (!user) redirect('/auth/login')
 
   const adminClient = createAdminClient()
-  const [[{ data: profile }, { data: portfolioItems }], { data: rawNotifications }] = await Promise.all([
+  const [[{ data: profile }, { data: portfolioItems }], { data: rawNotifications }, { data: rawProjects }] = await Promise.all([
     Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('portfolio_items').select('*').eq('profile_id', user.id).order('order_index'),
     ]),
     adminClient.from('notifications').select('*').eq('profile_id', user.id).order('created_at', { ascending: false }).limit(30),
+    supabase.from('projects')
+      .select('id, status')
+      .or(`photographer_id.eq.${user.id},model_id.eq.${user.id}`)
+      .not('status', 'in', '("cancelled","completed")'),
   ])
 
   if (!profile) redirect('/onboarding')
 
   const notifications = (rawNotifications ?? []) as Notification[]
+  const activeCount = rawProjects?.length ?? 0
   const userInitials = (profile.full_name as string).split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
 
   // Signed URL per la foto anzianità (bucket privato)
@@ -42,35 +56,120 @@ export default async function ProfileEditPage() {
     }
   }
 
+  const xpProgress = getLevelProgress((profile as Profile).xp)
+  const levelName = getLevelName((profile as Profile).level)
+  const barColor = LEVEL_BAR_COLOR[(profile as Profile).level] ?? 'bg-neutral-500'
+  const founder = isFounder(user.id)
+
   return (
     <div className="min-h-screen">
-      <AppNav userInitials={userInitials} userId={user.id} avatarUrl={(profile as Profile).avatar_url ?? null} notifications={notifications} />
+      <AppNav
+        userInitials={userInitials}
+        userId={user.id}
+        avatarUrl={(profile as Profile).avatar_url ?? null}
+        notifications={notifications}
+      />
 
-      <div className="max-w-lg mx-auto px-6 py-10 space-y-8">
-        <div className="flex items-center gap-4">
-          <ProfileAvatar avatarUrl={(profile as Profile).avatar_url ?? null} role={(profile as Profile).role} size={48} />
-          <div>
-            <p className="text-sm font-medium">{profile.full_name}</p>
-            <p className="text-xs text-neutral-500 mt-0.5">
-              {profile.role === 'photographer' ? 'Fotografo' : 'Modella / Modello'}
-            </p>
-          </div>
-          <div className="ml-auto">
-            <XPBadge level={(profile as Profile).level} xp={(profile as Profile).xp} isFounder={isFounder(user.id)} />
-          </div>
+      <div className="sm:flex sm:items-start sm:justify-center sm:px-6 sm:py-8">
+        <div className="w-full sm:max-w-4xl sm:rounded-2xl sm:border border-neutral-800 overflow-hidden flex flex-col sm:flex-row sm:min-h-[600px]">
+
+          {/* ── SIDEBAR ── */}
+          <aside className="sm:w-52 border-b sm:border-b-0 sm:border-r border-neutral-800 bg-neutral-950 flex flex-col shrink-0">
+
+            {/* Avatar + nome */}
+            <div className="flex items-center gap-3 p-4 sm:flex-col sm:items-start sm:px-4 sm:pt-4 sm:pb-0">
+              <ProfileAvatar
+                avatarUrl={(profile as Profile).avatar_url ?? null}
+                role={(profile as Profile).role}
+                size={44}
+              />
+              <div className="flex-1 min-w-0 sm:mt-2">
+                <p className="text-sm font-medium text-neutral-100 leading-tight">{profile.full_name}</p>
+                <p className="text-xs text-neutral-500 mt-0.5">
+                  {profile.role === 'photographer' ? 'Fotografo' : 'Modella / Modello'}
+                  {profile.city ? ` · ${profile.city}` : ''}
+                </p>
+              </div>
+              <span className="sm:hidden text-[11px] font-medium text-neutral-500 border border-neutral-700 px-2 py-0.5 rounded-full shrink-0">
+                Lv.{profile.level}
+              </span>
+            </div>
+
+            {/* XP bar */}
+            <div className="px-4 pt-3 pb-3 sm:pb-4 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-neutral-500">Lv.{profile.level} {levelName}</span>
+                <span className="text-[10px] text-neutral-600">
+                  {(profile as Profile).xp >= 1000
+                    ? `${((profile as Profile).xp / 1000).toFixed(0)}k`
+                    : (profile as Profile).xp} xp
+                </span>
+              </div>
+              <div className="h-1 bg-neutral-800 rounded-full overflow-hidden">
+                <div
+                  className={['h-full rounded-full transition-all', barColor].join(' ')}
+                  style={{ width: `${xpProgress}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Nav */}
+            <nav className="flex sm:flex-col gap-1 sm:gap-0.5 overflow-x-auto px-3 pb-3 sm:px-4 sm:pb-0 sm:flex-1 scrollbar-hide">
+              {[
+                { label: 'Il mio profilo', href: '/me' },
+                { label: 'Progetti', href: '/projects', badge: activeCount || null },
+                { label: 'Messaggi', href: '/messages' },
+                { label: 'Le mie visioni', href: '/bacheca' },
+                { label: 'Impostazioni', href: '/profile/edit', active: true },
+              ].map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={[
+                    'flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors whitespace-nowrap sm:whitespace-normal shrink-0 sm:shrink',
+                    item.active
+                      ? 'bg-neutral-800 text-neutral-100 font-medium'
+                      : 'text-neutral-500 hover:bg-neutral-800/60 hover:text-neutral-200',
+                  ].join(' ')}
+                >
+                  <span className="flex-1">{item.label}</span>
+                  {item.badge ? (
+                    <span className="bg-red-500 text-white text-[10px] font-medium px-1.5 py-0.5 rounded-full leading-none">
+                      {item.badge}
+                    </span>
+                  ) : null}
+                </Link>
+              ))}
+            </nav>
+
+            {founder && (
+              <div className="hidden sm:block mt-auto px-4 pt-4 pb-4">
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs text-amber-600 hover:bg-amber-500/10 hover:text-amber-400 transition-colors"
+                >
+                  ⚡ Admin
+                </Link>
+              </div>
+            )}
+          </aside>
+
+          {/* ── MAIN ── */}
+          <main className="flex-1 px-4 sm:px-6 py-5 min-w-0 space-y-8">
+            <ProfileEditForm
+              profile={profile as Profile}
+              portfolioItems={(portfolioItems ?? []) as PortfolioItem[]}
+            />
+
+            <OldestPhotoSection
+              profileId={user.id}
+              initialSignedUrl={oldestPhotoSignedUrl}
+              initialDate={(profile as Profile).oldest_photo_date ?? null}
+              initialExif={((profile as Profile).oldest_photo_exif as PhotoExif | null) ?? null}
+            />
+          </main>
+
         </div>
-
-        <ProfileEditForm
-          profile={profile as Profile}
-          portfolioItems={(portfolioItems ?? []) as PortfolioItem[]}
-        />
-
-        <OldestPhotoSection
-          profileId={user.id}
-          initialSignedUrl={oldestPhotoSignedUrl}
-          initialDate={(profile as Profile).oldest_photo_date ?? null}
-          initialExif={((profile as Profile).oldest_photo_exif as PhotoExif | null) ?? null}
-        />
       </div>
     </div>
   )

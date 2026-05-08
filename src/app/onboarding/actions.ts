@@ -13,6 +13,7 @@ interface CreateProfilePayload {
   instagram_url: string
   years_in_industry: number
   oldest_photo_url: string | null
+  oldest_photo_date: string | null
   avatar_url: string | null
   portfolio_urls: string[]
 }
@@ -46,6 +47,7 @@ export async function createProfile(payload: CreateProfilePayload) {
       instagram_url: payload.instagram_url.trim() || null,
       years_in_industry: payload.years_in_industry,
       oldest_photo_url: payload.oldest_photo_url,
+      oldest_photo_date: payload.oldest_photo_date,
       avatar_url: payload.avatar_url,
       xp: seniorityBonus,
       status: 'pending',

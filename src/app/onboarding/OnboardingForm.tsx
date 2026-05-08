@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import exifr from 'exifr'
 import { createClient } from '@/lib/supabase/client'
 import { createProfile } from './actions'
 import { Button } from '@/components/ui/Button'
@@ -45,6 +46,7 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
   // Foto più vecchia
   const [oldestPhotoFile, setOldestPhotoFile] = useState<File | null>(null)
   const [oldestPhotoPreview, setOldestPhotoPreview] = useState<string | null>(null)
+  const [oldestPhotoDate, setOldestPhotoDate] = useState<string | null>(null)
 
   // Foto profilo (avatar)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
@@ -68,10 +70,21 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
 
   // --- Upload helpers ---
 
-  function handleOldestPhoto(file: File | null) {
+  async function handleOldestPhoto(file: File | null) {
     if (!file) return
     setOldestPhotoFile(file)
     setOldestPhotoPreview(URL.createObjectURL(file))
+    setOldestPhotoDate(null)
+    try {
+      const exif = await exifr.parse(file, ['DateTimeOriginal', 'CreateDate'])
+      const raw = exif?.DateTimeOriginal ?? exif?.CreateDate
+      if (raw) {
+        const d = raw instanceof Date ? raw : new Date(raw)
+        if (!isNaN(d.getTime())) setOldestPhotoDate(d.toISOString())
+      }
+    } catch {
+      // EXIF non disponibile — nessun problema
+    }
   }
 
   function handleAvatarPhoto(file: File | null) {
@@ -172,6 +185,7 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
         instagram_url: form.instagram_url,
         years_in_industry: form.years_in_industry,
         oldest_photo_url: oldestPhotoUrl,
+        oldest_photo_date: oldestPhotoDate,
         avatar_url: avatarUrl,
         portfolio_urls: portfolioUrls,
       })

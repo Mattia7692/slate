@@ -52,6 +52,18 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
 
   const { data: authUser } = await admin.auth.admin.getUserById(id)
 
+  // Signed URL per la foto anzianità (bucket privato)
+  let oldestPhotoSignedUrl: string | null = null
+  if (profile.oldest_photo_url) {
+    const path = profile.oldest_photo_url.split('/oldest-photos/')[1]?.split('?')[0]
+    if (path) {
+      const { data: signed } = await admin.storage
+        .from('oldest-photos')
+        .createSignedUrl(decodeURIComponent(path), 3600)
+      oldestPhotoSignedUrl = signed?.signedUrl ?? null
+    }
+  }
+
   return (
     <div className="max-w-3xl mx-auto space-y-8">
       {/* Breadcrumb */}
@@ -158,24 +170,38 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
       )}
 
       {/* Foto di verifica anzianità — visibile solo qui, non nel profilo pubblico */}
-      {profile.oldest_photo_url && (
+      {(oldestPhotoSignedUrl || profile.oldest_photo_url) && (
         <section className="space-y-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
           <div>
             <h2 className="text-sm font-medium text-amber-400 uppercase tracking-wider">
               Foto di verifica anzianità
             </h2>
-            <p className="text-xs text-neutral-500 mt-0.5">
+            {profile.oldest_photo_date ? (
+              <p className="text-sm text-neutral-300 mt-1 font-medium">
+                Scattata il{' '}
+                {new Date(profile.oldest_photo_date).toLocaleDateString('it-IT', {
+                  day: 'numeric', month: 'long', year: 'numeric',
+                })}
+              </p>
+            ) : (
+              <p className="text-xs text-neutral-500 mt-0.5">
+                Data EXIF non disponibile
+              </p>
+            )}
+            <p className="text-xs text-neutral-600 mt-0.5">
               Riservata agli amministratori — non visibile nel profilo pubblico
             </p>
           </div>
-          <div className="relative w-full max-w-sm aspect-video rounded-xl overflow-hidden border border-neutral-800">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={profile.oldest_photo_url}
-              alt="Foto di verifica anzianità"
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          </div>
+          {(oldestPhotoSignedUrl ?? profile.oldest_photo_url) && (
+            <div className="relative w-full max-w-sm aspect-video rounded-xl overflow-hidden border border-neutral-800">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={(oldestPhotoSignedUrl ?? profile.oldest_photo_url)!}
+                alt="Foto di verifica anzianità"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            </div>
+          )}
         </section>
       )}
 

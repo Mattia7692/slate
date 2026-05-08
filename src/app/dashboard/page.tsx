@@ -55,7 +55,7 @@ export default async function DashboardPage({
   if (profile.status === 'pending') {
     return (
       <div className="min-h-screen">
-        <AppNav userInitials={userInitials} userId={user.id} notifications={notifications} />
+        <AppNav userInitials={userInitials} userId={user.id} avatarUrl={(profile as Profile).avatar_url ?? null} notifications={notifications} />
         <div className="max-w-lg mx-auto px-6 py-20 space-y-6">
           <div className="flex items-center gap-4">
             <ProfileAvatar avatarUrl={(profile as Profile).avatar_url ?? null} role={(profile as Profile).role} size={56} />
@@ -157,7 +157,7 @@ export default async function DashboardPage({
 
   return (
     <div className="min-h-screen">
-      <AppNav userInitials={userInitials} userId={user.id} notifications={notifications} />
+      <AppNav userInitials={userInitials} userId={user.id} avatarUrl={(profile as Profile).avatar_url ?? null} notifications={notifications} />
 
       <div className="max-w-4xl mx-auto px-6 py-6 space-y-8">
 

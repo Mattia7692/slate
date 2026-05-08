@@ -8,6 +8,7 @@ import type { Notification } from '@/types'
 interface AppNavProps {
   userInitials: string
   userId: string
+  avatarUrl: string | null
   notifications: Notification[]
 }
 
@@ -17,14 +18,14 @@ const TABS = [
   { label: 'Visioni', href: '/bacheca' },
 ]
 
-export function AppNav({ userInitials, userId, notifications }: AppNavProps) {
+export function AppNav({ userInitials, userId, avatarUrl, notifications }: AppNavProps) {
   const pathname = usePathname()
 
   return (
-    <header className="border-b border-neutral-800 px-5 h-64 flex items-center justify-between gap-4">
+    <header className="border-b border-neutral-800 px-5 h-32 flex items-center justify-between gap-4">
       <Link href="/dashboard" className="shrink-0">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="Slate" className="h-48 w-auto mix-blend-screen" />
+        <img src="/logo.png" alt="Slate" className="h-24 w-auto mix-blend-screen" />
       </Link>
 
       <nav className="flex items-center gap-1">
@@ -52,11 +53,15 @@ export function AppNav({ userInitials, userId, notifications }: AppNavProps) {
 
       <div className="flex items-center gap-3 shrink-0">
         <NotificationBell initialNotifications={notifications} currentUserId={userId} />
-        <Link
-          href="/me"
-          className="w-7 h-7 rounded-full bg-neutral-700 flex items-center justify-center text-xs font-semibold text-neutral-200 hover:bg-neutral-600 transition-colors"
-        >
-          {userInitials}
+        <Link href="/me" className="w-8 h-8 rounded-full overflow-hidden bg-neutral-700 hover:opacity-80 transition-opacity shrink-0">
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <span className="w-full h-full flex items-center justify-center text-xs font-semibold text-neutral-200">
+              {userInitials}
+            </span>
+          )}
         </Link>
       </div>
     </header>

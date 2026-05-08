@@ -1,6 +1,7 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/admin'
 import { isFounder } from '@/lib/founder'
@@ -33,4 +34,18 @@ export async function suspendProfile(profileId: string) {
 
 export async function setPendingProfile(profileId: string) {
   return setProfileStatus(profileId, 'pending')
+}
+
+export async function deleteProfile(profileId: string): Promise<{ error: string | null }> {
+  await requireAdmin()
+  if (isFounder(profileId)) return { error: 'Il profilo Founder non può essere cancellato.' }
+
+  const admin = createAdminClient()
+
+  // Cancella l'utente da auth (a cascata elimina il profilo via FK o trigger)
+  const { error: authError } = await admin.auth.admin.deleteUser(profileId)
+  if (authError) return { error: authError.message }
+
+  revalidatePath('/admin')
+  redirect('/admin')
 }

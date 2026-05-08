@@ -7,7 +7,8 @@ import { getLevelName, computeSeniorityBonus } from '@/lib/xp'
 import { isFounder } from '@/lib/founder'
 import { AdminProfileActions } from './AdminProfileActions'
 import { ToggleAdminButton } from './ToggleAdminButton'
-import type { ProfileStatus } from '@/types'
+import { DeleteProfileButton } from './DeleteProfileButton'
+import type { Profile, ProfileStatus } from '@/types'
 
 const STATUS_BADGE: Record<ProfileStatus, string> = {
   pending: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
@@ -77,8 +78,17 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
 
       {/* Header */}
       <div className="flex items-start gap-4">
-        <div className="w-14 h-14 rounded-full bg-neutral-800 flex items-center justify-center text-2xl shrink-0">
-          {profile.role === 'photographer' ? '📷' : '🧍'}
+        <div className="w-14 h-14 rounded-full bg-neutral-800 overflow-hidden shrink-0 flex items-center justify-center text-2xl">
+          {(profile as unknown as Profile).avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={(profile as unknown as Profile).avatar_url!}
+              alt={profile.full_name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            profile.role === 'photographer' ? '📷' : '🧍'
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
@@ -137,6 +147,10 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
               isAdmin={!!profile.is_admin}
               profileName={profile.full_name}
             />
+          )}
+          {/* Elimina profilo — solo su profili non-Founder, non se stessi */}
+          {!isFounder(id) && currentUser?.id !== id && (
+            <DeleteProfileButton profileId={id} profileName={profile.full_name} />
           )}
         </div>
       </div>

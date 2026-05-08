@@ -170,28 +170,34 @@ export default async function MePage() {
     <div className="min-h-screen">
       <AppNav userInitials={userInitials} userId={user.id} avatarUrl={(profile as Profile).avatar_url ?? null} notifications={notifications} />
 
-      <div className="flex items-start justify-center px-6 py-8">
-        <div className="w-full max-w-4xl rounded-2xl border border-neutral-800 overflow-hidden flex" style={{ minHeight: '600px' }}>
+      <div className="sm:flex sm:items-start sm:justify-center sm:px-6 sm:py-8">
+        <div className="w-full sm:max-w-4xl sm:rounded-2xl sm:border border-neutral-800 overflow-hidden flex flex-col sm:flex-row sm:min-h-[600px]">
 
         {/* ── SIDEBAR ──────────────────────────────────────────── */}
-        <aside className="w-52 border-r border-neutral-800 bg-neutral-950 p-4 flex flex-col shrink-0">
-          {/* Avatar */}
-          <div className="mb-3">
+        <aside className="sm:w-52 border-b sm:border-b-0 sm:border-r border-neutral-800 bg-neutral-950 flex flex-col shrink-0">
+
+          {/* Avatar + nome */}
+          <div className="flex items-center gap-3 p-4 sm:flex-col sm:items-start sm:px-4 sm:pt-4 sm:pb-0">
             <ProfileAvatar
               avatarUrl={(profile as Profile).avatar_url ?? null}
               role={(profile as Profile).role}
-              size={52}
+              size={44}
             />
+            <div className="flex-1 min-w-0 sm:mt-2">
+              <p className="text-sm font-medium text-neutral-100 leading-tight">{profile.full_name}</p>
+              <p className="text-xs text-neutral-500 mt-0.5">
+                {profile.role === 'photographer' ? 'Fotografo' : 'Modella / Modello'}
+                {profile.city ? ` · ${profile.city}` : ''}
+              </p>
+            </div>
+            {/* Badge livello: solo mobile */}
+            <span className="sm:hidden text-[11px] font-medium text-neutral-500 border border-neutral-700 px-2 py-0.5 rounded-full shrink-0">
+              Lv.{profile.level}
+            </span>
           </div>
 
-          <p className="text-sm font-medium text-neutral-100 leading-tight">{profile.full_name}</p>
-          <p className="text-xs text-neutral-500 mt-0.5 mb-3">
-            {profile.role === 'photographer' ? 'Fotografo' : 'Modella / Modello'}
-            {profile.city ? ` · ${profile.city}` : ''}
-          </p>
-
           {/* XP bar */}
-          <div className="mb-4 space-y-1.5">
+          <div className="px-4 pt-3 pb-3 sm:pb-4 space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-neutral-500">Lv.{profile.level} {levelName}</span>
               <span className="text-[10px] text-neutral-600">
@@ -208,8 +214,8 @@ export default async function MePage() {
             </div>
           </div>
 
-          {/* Menu */}
-          <nav className="flex flex-col gap-0.5">
+          {/* Menu: scroll orizzontale su mobile, verticale su desktop */}
+          <nav className="flex sm:flex-col gap-1 sm:gap-0.5 overflow-x-auto px-3 pb-3 sm:px-4 sm:pb-0 sm:flex-1 scrollbar-hide">
             {[
               { label: 'Il mio profilo', href: '/me', active: true },
               { label: 'Progetti', href: '/projects', badge: activeProjects.length || null },
@@ -221,7 +227,7 @@ export default async function MePage() {
                 key={item.href}
                 href={item.href}
                 className={[
-                  'flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs transition-colors',
+                  'flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors whitespace-nowrap sm:whitespace-normal shrink-0 sm:shrink',
                   item.active
                     ? 'bg-neutral-800 text-neutral-100 font-medium'
                     : 'text-neutral-500 hover:bg-neutral-800/60 hover:text-neutral-200',
@@ -238,7 +244,7 @@ export default async function MePage() {
           </nav>
 
           {founder && (
-            <div className="mt-auto pt-4">
+            <div className="hidden sm:block mt-auto px-4 pt-4 pb-4">
               <Link
                 href="/admin"
                 className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs text-amber-600 hover:bg-amber-500/10 hover:text-amber-400 transition-colors"
@@ -250,7 +256,7 @@ export default async function MePage() {
         </aside>
 
         {/* ── MAIN ─────────────────────────────────────────────── */}
-        <main className="flex-1 px-6 py-5 min-w-0 space-y-6">
+        <main className="flex-1 px-4 sm:px-6 py-5 min-w-0 space-y-6">
 
           {/* Stat row */}
           <div className="grid grid-cols-3 gap-3">

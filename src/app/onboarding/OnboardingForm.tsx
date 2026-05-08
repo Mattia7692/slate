@@ -80,7 +80,7 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
     const exif = await readPhotoExif(file)
     if (exif) {
       setOldestPhotoDate(exif.date)
-      setOldestPhotoExif(exif as Record<string, unknown>)
+      setOldestPhotoExif(exif as unknown as Record<string, unknown>)
     }
   }
 

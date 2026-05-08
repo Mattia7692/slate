@@ -51,7 +51,7 @@ export function OldestPhotoSection({ profileId, initialSignedUrl, initialDate, i
       if (signed?.signedUrl) setPreview(signed.signedUrl)
 
       const { data: pub } = supabase.storage.from('oldest-photos').getPublicUrl(path)
-      const result = await updateOldestPhoto(pub.publicUrl, photoExif?.date ?? null, photoExif as Record<string, unknown> | null)
+      const result = await updateOldestPhoto(pub.publicUrl, photoExif?.date ?? null, photoExif as unknown as Record<string, unknown> | null)
       if (result?.error) throw new Error(result.error)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Errore durante il caricamento.')

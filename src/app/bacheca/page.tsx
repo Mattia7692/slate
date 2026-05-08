@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import type { VisionWithCreator } from '@/types'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { AppNav } from '@/components/layout/AppNav'
+import type { VisionWithCreator, Notification } from '@/types'
 
 const ROLE_LABEL = { photographer: 'Fotografo', model: 'Modella / Modello' }
 const ROLE_STYLE = {
@@ -13,6 +15,29 @@ export default async function BachecaPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name, avatar_url')
+    .eq('id', user.id)
+    .single()
+
+  const adminClient = createAdminClient()
+  const { data: rawNotifications } = await adminClient
+    .from('notifications')
+    .select('*')
+    .eq('profile_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(30)
+
+  const notifications = (rawNotifications ?? []) as Notification[]
+
+  const userInitials = (profile?.full_name ?? '')
+    .split(' ')
+    .map((n: string) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
 
   const { data: rawVisions } = await supabase
     .from('visions')
@@ -28,10 +53,17 @@ export default async function BachecaPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-neutral-800 px-8 py-6">
-        <div className="max-w-7xl mx-auto flex items-end justify-between gap-4">
+      <AppNav
+        userInitials={userInitials}
+        userId={user.id}
+        avatarUrl={profile?.avatar_url ?? null}
+        notifications={notifications}
+      />
+
+      <div className="max-w-4xl mx-auto px-6 py-6 space-y-6">
+        <div className="flex items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Bacheca delle visioni</h1>
+            <h1 className="text-lg font-semibold tracking-tight">Visioni</h1>
             <p className="text-sm text-neutral-500 mt-0.5">
               {visions.length} {visions.length === 1 ? 'visione aperta' : 'visioni aperte'}
             </p>
@@ -43,9 +75,6 @@ export default async function BachecaPage() {
             + Nuova visione
           </Link>
         </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-8 py-8">
         {visions.length === 0 ? (
           <div className="py-32 text-center space-y-3">
             <p className="text-neutral-400">Nessuna visione aperta al momento.</p>
@@ -54,7 +83,7 @@ export default async function BachecaPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {visions.map((vision) => {
               const cover = vision.images.sort((a, b) => a.order_index - b.order_index)[0]
               return (

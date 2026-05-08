@@ -14,6 +14,7 @@ const BASE_NAV_ITEMS: Omit<NavItem, 'badge'>[] = [
   { label: 'Gestione profili', href: '/admin', exact: true },
   { label: 'Candidature', href: '/admin/applications', exact: false },
   { label: 'Codici invito', href: '/admin/invite-codes', exact: false },
+  { label: 'Proposte', href: '/admin/proposals', exact: false },
   { label: 'Progetti', href: '/admin/projects', exact: false },
   { label: 'Monitoraggio chat', href: '/admin/messages', exact: false },
   { label: 'Anteprima onboarding', href: '/admin/onboarding-preview', exact: false },

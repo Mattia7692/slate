@@ -171,7 +171,7 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
           <div className="flex items-start justify-between">
             <div>
               <h2 className="text-sm font-medium text-amber-400 uppercase tracking-wider">
-                Foto di verifica anzianità
+                Prima foto professionale
               </h2>
               <p className="text-xs text-neutral-600 mt-0.5">
                 Riservata agli amministratori — non visibile nel profilo pubblico
@@ -186,7 +186,7 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={(oldestPhotoSignedUrl ?? profile.oldest_photo_url)!}
-                  alt="Foto di verifica anzianità"
+                  alt="Prima foto professionale"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
               </div>

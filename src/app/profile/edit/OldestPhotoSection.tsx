@@ -91,7 +91,7 @@ export function OldestPhotoSection({ profileId, initialSignedUrl, initialDate, i
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-sm font-medium text-amber-400 uppercase tracking-wider">
-            Foto di anzianità
+            Prima foto professionale
           </h2>
           <p className="text-xs text-neutral-600 mt-0.5">
             Visibile solo a te e agli amministratori — non appare nel tuo profilo pubblico
@@ -105,7 +105,7 @@ export function OldestPhotoSection({ profileId, initialSignedUrl, initialDate, i
             {/* Foto */}
             <div className="relative w-full sm:w-56 aspect-video rounded-xl overflow-hidden border border-neutral-800 shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={preview} alt="Foto anzianità" className="absolute inset-0 w-full h-full object-cover" />
+              <img src={preview} alt="Prima foto professionale" className="absolute inset-0 w-full h-full object-cover" />
             </div>
 
             {/* EXIF panel */}
@@ -166,7 +166,7 @@ export function OldestPhotoSection({ profileId, initialSignedUrl, initialDate, i
       ) : (
         <label className="flex flex-col items-center justify-center w-full h-40 rounded-xl border border-dashed border-amber-500/30 hover:border-amber-500/60 cursor-pointer transition-colors">
           <span className="text-2xl text-neutral-600 mb-2">📎</span>
-          <span className="text-sm text-neutral-500">Carica la tua foto più vecchia</span>
+          <span className="text-sm text-neutral-500">Carica la tua prima foto professionale</span>
           <span className="text-xs text-neutral-600 mt-1">JPG, PNG, WebP</span>
           <input
             type="file"

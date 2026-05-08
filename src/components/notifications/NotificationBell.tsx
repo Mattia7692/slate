@@ -26,7 +26,7 @@ export function NotificationBell({ initialNotifications, currentUserId }: Notifi
   const router = useRouter()
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const unread = notifications.filter((n) => !n.read_at).length
+  const unread = notifications.filter((n) => !n.read).length
 
   // Chiudi dropdown cliccando fuori
   useEffect(() => {
@@ -76,10 +76,11 @@ export function NotificationBell({ initialNotifications, currentUserId }: Notifi
   }, [currentUserId])
 
   function handleAccept(n: Notification) {
-    if (!n.invite_id || isPending) return
+    const inviteId = n.data?.invite_id as string | undefined
+    if (!inviteId || isPending) return
     setProcessingId(n.id)
     startTransition(async () => {
-      const result = await acceptInvite(n.invite_id!)
+      const result = await acceptInvite(inviteId)
       if (result.error) {
         alert(result.error)
         setProcessingId(null)
@@ -91,31 +92,33 @@ export function NotificationBell({ initialNotifications, currentUserId }: Notifi
   }
 
   function handleDecline(n: Notification) {
-    if (!n.invite_id || isPending) return
+    const inviteId = n.data?.invite_id as string | undefined
+    if (!inviteId || isPending) return
     setProcessingId(n.id)
     startTransition(async () => {
-      const result = await declineInvite(n.invite_id!)
+      const result = await declineInvite(inviteId)
       if (result.error) {
         alert(result.error)
       }
       setProcessingId(null)
       setNotifications((prev) =>
-        prev.map((x) => x.id === n.id ? { ...x, read_at: new Date().toISOString() } : x)
+        prev.map((x) => x.id === n.id ? { ...x, read: true } : x)
       )
     })
   }
 
   function handleMarkRead(n: Notification) {
-    if (n.read_at) return
+    if (n.read) return
+    const projectId = n.data?.project_id as string | undefined
     startTransition(async () => {
       await markNotificationRead(n.id)
       setNotifications((prev) =>
-        prev.map((x) => x.id === n.id ? { ...x, read_at: new Date().toISOString() } : x)
+        prev.map((x) => x.id === n.id ? { ...x, read: true } : x)
       )
     })
-    if (n.project_id) {
+    if (projectId) {
       setOpen(false)
-      router.push(`/projects/${n.project_id}`)
+      router.push(`/projects/${projectId}`)
     }
   }
 
@@ -157,8 +160,8 @@ export function NotificationBell({ initialNotifications, currentUserId }: Notifi
                   key={n.id}
                   className={[
                     'px-4 py-3 space-y-2 transition-colors',
-                    !n.read_at ? 'bg-neutral-900/60' : '',
-                    n.type !== 'invite_received' && n.project_id ? 'cursor-pointer hover:bg-neutral-900' : '',
+                    !n.read ? 'bg-neutral-900/60' : '',
+                    n.type !== 'invite_received' && n.data?.project_id ? 'cursor-pointer hover:bg-neutral-900' : '',
                   ].join(' ')}
                   onClick={() => {
                     if (n.type !== 'invite_received') handleMarkRead(n)
@@ -182,13 +185,13 @@ export function NotificationBell({ initialNotifications, currentUserId }: Notifi
                         })}
                       </p>
                     </div>
-                    {!n.read_at && (
+                    {!n.read && (
                       <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 mt-1.5" />
                     )}
                   </div>
 
                   {/* Bottoni accetta/rifiuta per inviti */}
-                  {n.type === 'invite_received' && !n.read_at && n.invite_id && (
+                  {n.type === 'invite_received' && !n.read && !!n.data?.invite_id && (
                     <div className="flex items-center gap-2 pl-7">
                       <button
                         onClick={(e) => { e.stopPropagation(); handleAccept(n) }}

@@ -84,7 +84,7 @@ export async function sendInvite(receiverId: string, payload: SendInvitePayload)
     type: 'invite_received',
     title: 'Nuova proposta di collaborazione',
     body: `${senderProfile.full_name}${payload.creative_idea ? ': ' + payload.creative_idea.slice(0, 100) : ''}`,
-    invite_id: invite.id,
+    data: { invite_id: invite.id },
   })
   if (notifError) console.error('Notifica non creata:', notifError.message)
 
@@ -154,14 +154,13 @@ export async function acceptInvite(inviteId: string) {
       type: 'invite_accepted',
       title: `${receiver.full_name} ha accettato la tua proposta`,
       body: null,
-      invite_id: inviteId,
-      project_id: project.id,
+      data: { invite_id: inviteId, project_id: project.id },
     }),
 
     adminClient
       .from('notifications')
-      .update({ read_at: new Date().toISOString() })
-      .eq('invite_id', inviteId)
+      .update({ read: true })
+      .filter('data->>invite_id', 'eq', inviteId)
       .eq('type', 'invite_received'),
   ])
 
@@ -199,13 +198,13 @@ export async function declineInvite(inviteId: string) {
       type: 'invite_declined',
       title: `${receiver.full_name} ha rifiutato la tua proposta`,
       body: null,
-      invite_id: inviteId,
+      data: { invite_id: inviteId },
     }),
 
     adminClient
       .from('notifications')
-      .update({ read_at: new Date().toISOString() })
-      .eq('invite_id', inviteId)
+      .update({ read: true })
+      .filter('data->>invite_id', 'eq', inviteId)
       .eq('type', 'invite_received'),
   ])
 
@@ -222,7 +221,7 @@ export async function markNotificationRead(notificationId: string) {
   const adminClient = createAdminClient()
   const { error } = await adminClient
     .from('notifications')
-    .update({ read_at: new Date().toISOString() })
+    .update({ read: true })
     .eq('id', notificationId)
     .eq('user_id', user.id)
 

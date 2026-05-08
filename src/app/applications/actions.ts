@@ -33,12 +33,11 @@ export async function submitApplication(data: {
   if (admins && admins.length > 0) {
     await admin.from('notifications').insert(
       admins.map((a) => ({
-        profile_id: a.id,
+        user_id: a.id,
         type: 'project_update' as const,
         title: 'Nuova candidatura',
         body: `${roleLabel} — ${data.email}`,
-        invite_id: null,
-        project_id: null,
+        data: null,
       }))
     )
   }

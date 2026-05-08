@@ -146,9 +146,8 @@ export interface Notification {
   type: NotificationType
   title: string
   body: string | null
-  invite_id: string | null
-  project_id: string | null
-  read_at: string | null
+  data: Record<string, unknown> | null
+  read: boolean
   created_at: string
 }
 

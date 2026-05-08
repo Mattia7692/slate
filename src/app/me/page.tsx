@@ -92,7 +92,7 @@ export default async function MePage() {
   const { data: rawNotifications } = await adminClient
     .from('notifications')
     .select('*')
-    .eq('profile_id', user.id)
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(30)
 

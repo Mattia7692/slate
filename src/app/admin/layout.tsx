@@ -15,10 +15,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="min-h-screen flex flex-col">
       {/* Topbar */}
-      <header className="border-b border-neutral-800 px-5 h-12 flex items-center justify-between shrink-0">
+      <header className="border-b border-neutral-800 px-5 h-16 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Slate" className="h-6 w-auto mix-blend-screen" />
+          <img src="/logo.png" alt="Slate" className="h-12 w-auto mix-blend-screen" />
           <span className="text-sm text-neutral-600 font-normal">/ Admin</span>
         </div>
         <div className="flex items-center gap-4">

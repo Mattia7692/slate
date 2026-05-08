@@ -21,10 +21,10 @@ export function AppNav({ userInitials, userId, notifications }: AppNavProps) {
   const pathname = usePathname()
 
   return (
-    <header className="border-b border-neutral-800 px-5 h-12 flex items-center justify-between gap-4">
+    <header className="border-b border-neutral-800 px-5 h-16 flex items-center justify-between gap-4">
       <Link href="/dashboard" className="shrink-0">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="Slate" className="h-9 w-auto mix-blend-screen" />
+        <img src="/logo.png" alt="Slate" className="h-12 w-auto mix-blend-screen" />
       </Link>
 
       <nav className="flex items-center gap-1">

@@ -170,7 +170,7 @@ export default async function MePage() {
     <div className="min-h-screen">
       <AppNav userInitials={userInitials} userId={user.id} notifications={notifications} />
 
-      <div className="flex min-h-[calc(100vh-48px)]">
+      <div className="flex min-h-[calc(100vh-64px)]">
 
         {/* ── SIDEBAR ──────────────────────────────────────────── */}
         <aside className="w-52 border-r border-neutral-800 bg-neutral-950 p-4 flex flex-col shrink-0">

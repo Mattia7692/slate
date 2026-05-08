@@ -52,11 +52,13 @@ export async function signup(formData: FormData) {
   }
 
   // Registra l'utente
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
   const { data: authData, error: signupError } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { invite_code: inviteCode },
+      emailRedirectTo: `${siteUrl}/auth/callback`,
     },
   })
 

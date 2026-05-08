@@ -75,66 +75,67 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
         <span className="text-neutral-300">{profile.full_name}</span>
       </div>
 
-      {/* Header */}
-      <div className="flex items-start gap-4">
-        <div className="w-14 h-14 rounded-full bg-neutral-800 overflow-hidden shrink-0 flex items-center justify-center text-2xl">
-          {(profile as unknown as Profile).avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={(profile as unknown as Profile).avatar_url!}
-              alt={profile.full_name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            profile.role === 'photographer' ? '📷' : '🧍'
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-xl font-semibold">{profile.full_name}</h1>
-            <span
-              className={[
-                'rounded-full border px-2.5 py-0.5 text-xs font-medium',
-                STATUS_BADGE[profile.status as ProfileStatus],
-              ].join(' ')}
-            >
-              {STATUS_LABEL[profile.status as ProfileStatus]}
-            </span>
+      {/* Header + Azioni affiancati */}
+      <div className="flex items-start gap-6">
+        {/* Sinistra: avatar + info */}
+        <div className="flex items-start gap-4 flex-1 min-w-0">
+          <div className="w-14 h-14 rounded-full bg-neutral-800 overflow-hidden shrink-0 flex items-center justify-center text-2xl">
+            {(profile as unknown as Profile).avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={(profile as unknown as Profile).avatar_url!}
+                alt={profile.full_name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              profile.role === 'photographer' ? '📷' : '🧍'
+            )}
           </div>
-          <p className="text-sm text-neutral-400 mt-1">
-            {profile.role === 'photographer' ? 'Fotografo' : 'Modella / Modello'}
-            {profile.city ? ` · ${profile.city}` : ''}
-          </p>
-          {authUser?.user?.email && (
-            <p className="text-xs text-neutral-600 mt-0.5">{authUser.user.email}</p>
-          )}
+          <div className="min-w-0">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-xl font-semibold">{profile.full_name}</h1>
+              <span
+                className={[
+                  'rounded-full border px-2.5 py-0.5 text-xs font-medium',
+                  STATUS_BADGE[profile.status as ProfileStatus],
+                ].join(' ')}
+              >
+                {STATUS_LABEL[profile.status as ProfileStatus]}
+              </span>
+              {isFounder(id) && (
+                <span className="rounded-full border border-amber-400/40 bg-gradient-to-r from-amber-500/20 to-rose-500/20 px-2.5 py-0.5 text-xs font-semibold text-amber-300">
+                  ✦ Founder
+                </span>
+              )}
+              {!isFounder(id) && profile.is_admin && (
+                <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-400">
+                  Admin
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-neutral-400 mt-1">
+              {profile.role === 'photographer' ? 'Fotografo' : 'Modella / Modello'}
+              {profile.city ? ` · ${profile.city}` : ''}
+            </p>
+            {authUser?.user?.email && (
+              <p className="text-xs text-neutral-600 mt-0.5">{authUser.user.email}</p>
+            )}
+          </div>
         </div>
 
-        {/* Badge Founder / Admin */}
-        <div className="flex flex-col items-end gap-1.5 shrink-0">
-          {isFounder(id) && (
-            <span className="rounded-full border border-amber-400/40 bg-gradient-to-r from-amber-500/20 to-rose-500/20 px-2.5 py-1 text-xs font-semibold text-amber-300">
-              ✦ Founder
-            </span>
-          )}
-          {!isFounder(id) && profile.is_admin && (
-            <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-400">
-              Admin
-            </span>
-          )}
+        {/* Destra: pannello azioni */}
+        <div className="shrink-0 w-64">
+          <AdminActionsPanel
+            profileId={id}
+            currentStatus={profile.status as ProfileStatus}
+            isAdmin={!!profile.is_admin}
+            isSelf={currentUser?.id === id}
+            isFounderProfile={isFounder(id)}
+            currentIsFounder={currentIsFounder}
+            profileName={profile.full_name}
+          />
         </div>
       </div>
-
-      {/* Pannello azioni */}
-      <AdminActionsPanel
-        profileId={id}
-        currentStatus={profile.status as ProfileStatus}
-        isAdmin={!!profile.is_admin}
-        isSelf={currentUser?.id === id}
-        isFounderProfile={isFounder(id)}
-        currentIsFounder={currentIsFounder}
-        profileName={profile.full_name}
-      />
 
       {/* Sezione info */}
       <div className="grid grid-cols-2 gap-4">

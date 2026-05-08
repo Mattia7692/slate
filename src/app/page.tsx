@@ -156,9 +156,8 @@ export default function LandingPage() {
 
       {/* ── HERO ──────────────────────────────────────────────── */}
       <section className="flex flex-col items-center justify-center text-center px-6 py-28 md:py-40 max-w-3xl mx-auto">
-        <p className="text-xs font-semibold tracking-[0.2em] text-neutral-400 uppercase mb-8">
-          Slate — beta privata
-        </p>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.png" alt="Slate" className="h-16 w-auto mx-auto mb-8 invert mix-blend-multiply" />
         <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-tight mb-6">
           La fotografia professionale merita un posto serio.
         </h1>

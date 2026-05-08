@@ -14,8 +14,9 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
     <main className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-8">
         {/* Logo */}
-        <div className="text-center space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">Slate</h1>
+        <div className="text-center space-y-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="Slate" className="h-10 w-auto mx-auto mix-blend-screen" />
           <p className="text-sm text-neutral-400">
             Crea il tuo account con un codice invito
           </p>

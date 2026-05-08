@@ -27,7 +27,7 @@ export async function updateProfile(formData: FormData) {
 
   if (error) return { error: error.message }
 
-  redirect(`/profile/${user.id}`)
+  redirect('/me')
 }
 
 export async function deletePortfolioItem(itemId: string) {

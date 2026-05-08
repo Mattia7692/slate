@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { DeleteProjectButton } from './DeleteProjectButton'
 import type { ProjectStatus } from '@/types'
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim())
@@ -124,12 +125,15 @@ export default async function AdminProjectsPage() {
                   {new Date(p.created_at).toLocaleDateString('it-IT')}
                 </td>
                 <td className="px-4 py-3">
-                  <Link
-                    href={`/projects/${p.id}`}
-                    className="text-xs text-neutral-500 hover:text-neutral-200 transition-colors"
-                  >
-                    Vedi →
-                  </Link>
+                  <div className="flex items-center gap-3">
+                    <Link
+                      href={`/projects/${p.id}`}
+                      className="text-xs text-neutral-500 hover:text-neutral-200 transition-colors"
+                    >
+                      Vedi →
+                    </Link>
+                    <DeleteProjectButton projectId={p.id} />
+                  </div>
                 </td>
               </tr>
             ))}

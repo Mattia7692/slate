@@ -1,9 +1,11 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { ProfileCard } from '@/components/profile/ProfileCard'
 import { ExploreFilters } from './ExploreFilters'
-import type { Profile, PortfolioItem } from '@/types'
+import { AppNav } from '@/components/layout/AppNav'
+import type { Profile, PortfolioItem, Notification } from '@/types'
 
 interface ExplorePageProps {
   searchParams: Promise<{
@@ -19,6 +21,29 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name, avatar_url')
+    .eq('id', user.id)
+    .single()
+
+  const adminClient = createAdminClient()
+  const { data: rawNotifications } = await adminClient
+    .from('notifications')
+    .select('*')
+    .eq('profile_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(30)
+
+  const notifications = (rawNotifications ?? []) as Notification[]
+
+  const userInitials = (profile?.full_name ?? '')
+    .split(' ')
+    .map((n: string) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
 
   const { role, level } = await searchParams
 
@@ -59,19 +84,20 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <header className="border-b border-neutral-800 px-8 py-6">
-        <div className="max-w-7xl mx-auto flex items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Esplora</h1>
-            <p className="text-sm text-neutral-500 mt-0.5">
-              {count} {count === 1 ? 'profilo approvato' : 'profili approvati'}
-            </p>
-          </div>
-        </div>
-      </header>
+      <AppNav
+        userInitials={userInitials}
+        userId={user.id}
+        avatarUrl={profile?.avatar_url ?? null}
+        notifications={notifications}
+      />
 
-      <div className="max-w-7xl mx-auto px-8 py-8 space-y-8">
+      <div className="max-w-4xl mx-auto px-6 py-6 space-y-6">
+        <div>
+          <h1 className="text-lg font-semibold tracking-tight">Esplora</h1>
+          <p className="text-sm text-neutral-500 mt-0.5">
+            {count} {count === 1 ? 'profilo approvato' : 'profili approvati'}
+          </p>
+        </div>
         {/* Filtri */}
         <Suspense>
           <ExploreFilters
@@ -87,7 +113,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
             <p className="text-sm text-neutral-600">Prova a cambiare i filtri.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {profilesWithCover.map((profile) => (
               <ProfileCard
                 key={profile.id}

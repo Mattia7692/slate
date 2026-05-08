@@ -44,8 +44,8 @@ export function AdminSidebar({ pendingApplications = 0 }: AdminSidebarProps) {
             className={[
               'flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs transition-colors',
               isActive
-                ? 'bg-neutral-800 text-neutral-100 font-medium'
-                : 'text-neutral-500 hover:bg-neutral-800/60 hover:text-neutral-200',
+                ? 'bg-amber-50 text-amber-900 font-medium'
+                : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900',
             ].join(' ')}
           >
             <span className="flex-1">{label}</span>

@@ -321,12 +321,16 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
               Anni di esperienza nel settore
             </label>
             <input
-              type="number"
-              min={0}
-              max={50}
-              value={form.years_in_industry}
-              onChange={(e) => set('years_in_industry', parseInt(e.target.value) || 0)}
-              className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="es. 5"
+              value={form.years_in_industry === 0 ? '' : form.years_in_industry}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/\D/g, '')
+                set('years_in_industry', raw === '' ? 0 : Math.min(50, parseInt(raw)))
+              }}
+              className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20"
             />
             {form.years_in_industry > 0 && (
               <p className="text-xs text-neutral-500">

@@ -12,7 +12,7 @@ interface AppNavProps {
   notifications: Notification[]
 }
 
-const TABS = [
+const MAIN_TABS = [
   { label: 'Home', href: '/dashboard' },
   { label: 'Esplora', href: '/explore' },
   { label: 'Visioni', href: '/bacheca' },
@@ -20,6 +20,11 @@ const TABS = [
 
 export function AppNav({ userInitials, userId, avatarUrl, notifications }: AppNavProps) {
   const pathname = usePathname()
+
+  function isActive(href: string) {
+    if (href === '/dashboard') return pathname === href
+    return pathname === href || pathname.startsWith(href + '/')
+  }
 
   return (
     <header className="border-b border-neutral-800 px-5 h-32 flex items-center justify-between gap-4">
@@ -29,26 +34,34 @@ export function AppNav({ userInitials, userId, avatarUrl, notifications }: AppNa
       </Link>
 
       <nav className="flex items-center gap-1">
-        {TABS.map((tab) => {
-          const isActive =
-            pathname === tab.href ||
-            (tab.href !== '/dashboard' && pathname.startsWith(tab.href + '/')) ||
-            (tab.href !== '/dashboard' && pathname === tab.href)
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className={[
-                'text-[13px] px-3 py-1.5 rounded-lg transition-colors',
-                isActive
-                  ? 'bg-neutral-800 text-neutral-100 font-medium'
-                  : 'text-neutral-500 hover:text-neutral-300',
-              ].join(' ')}
-            >
-              {tab.label}
-            </Link>
-          )
-        })}
+        {MAIN_TABS.map((tab) => (
+          <Link
+            key={tab.href}
+            href={tab.href}
+            className={[
+              'text-[13px] px-3 py-1.5 rounded-lg transition-colors',
+              isActive(tab.href)
+                ? 'bg-neutral-800 text-neutral-100 font-medium'
+                : 'text-neutral-500 hover:text-neutral-300',
+            ].join(' ')}
+          >
+            {tab.label}
+          </Link>
+        ))}
+
+        <span className="text-neutral-700 px-1 select-none">/</span>
+
+        <Link
+          href="/me"
+          className={[
+            'text-[13px] px-3 py-1.5 rounded-lg transition-colors',
+            isActive('/me')
+              ? 'bg-neutral-800 text-neutral-100 font-medium'
+              : 'text-neutral-500 hover:text-neutral-300',
+          ].join(' ')}
+        >
+          Personale
+        </Link>
       </nav>
 
       <div className="flex items-center gap-3 shrink-0">

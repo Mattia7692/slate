@@ -55,6 +55,20 @@ export async function deletePortfolioItem(itemId: string) {
   return { ok: true }
 }
 
+export async function updateOldestPhoto(url: string, date: string | null) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Non autenticato.' }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ oldest_photo_url: url, oldest_photo_date: date })
+    .eq('id', user.id)
+
+  if (error) return { error: error.message }
+  return { ok: true }
+}
+
 export async function addPortfolioItem(imageUrl: string) {
   const supabase = await createClient()
 

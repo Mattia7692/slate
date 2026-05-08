@@ -44,6 +44,7 @@ export interface Profile {
   instagram_url: string | null
   years_in_industry: number
   oldest_photo_url: string | null
+  oldest_photo_date: string | null
   avatar_url: string | null
   xp: number
   level: number

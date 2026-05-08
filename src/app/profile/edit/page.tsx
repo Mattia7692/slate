@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ProfileEditForm } from './ProfileEditForm'
+import { OldestPhotoSection } from './OldestPhotoSection'
 import { XPBadge } from '@/components/profile/XPBadge'
 import { isFounder } from '@/lib/founder'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
@@ -28,6 +29,18 @@ export default async function ProfileEditPage() {
   const notifications = (rawNotifications ?? []) as Notification[]
   const userInitials = (profile.full_name as string).split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
 
+  // Signed URL per la foto anzianità (bucket privato)
+  let oldestPhotoSignedUrl: string | null = null
+  if ((profile as Profile).oldest_photo_url) {
+    const path = (profile as Profile).oldest_photo_url!.split('/oldest-photos/')[1]?.split('?')[0]
+    if (path) {
+      const { data: signed } = await adminClient.storage
+        .from('oldest-photos')
+        .createSignedUrl(decodeURIComponent(path), 3600)
+      oldestPhotoSignedUrl = signed?.signedUrl ?? null
+    }
+  }
+
   return (
     <div className="min-h-screen">
       <AppNav userInitials={userInitials} userId={user.id} avatarUrl={(profile as Profile).avatar_url ?? null} notifications={notifications} />
@@ -49,6 +62,12 @@ export default async function ProfileEditPage() {
         <ProfileEditForm
           profile={profile as Profile}
           portfolioItems={(portfolioItems ?? []) as PortfolioItem[]}
+        />
+
+        <OldestPhotoSection
+          profileId={user.id}
+          initialSignedUrl={oldestPhotoSignedUrl}
+          initialDate={(profile as Profile).oldest_photo_date ?? null}
         />
       </div>
     </div>

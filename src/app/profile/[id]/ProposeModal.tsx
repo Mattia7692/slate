@@ -60,7 +60,7 @@ export function ProposeModal({
       for (let i = 0; i < Math.min(files.length, 6 - moodboardUrls.length); i++) {
         const file = files[i]
         const ext = file.name.split('.').pop()
-        const path = `moodboard/${currentUserId}/${Date.now()}-${i}.${ext}`
+        const path = `${currentUserId}/moodboard-${Date.now()}-${i}.${ext}`
         const { error } = await supabase.storage.from('portfolio').upload(path, file, { cacheControl: '3600', upsert: false })
         if (error) continue
         const { data } = supabase.storage.from('portfolio').getPublicUrl(path)

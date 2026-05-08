@@ -42,6 +42,7 @@ export interface Profile {
   bio: string | null
   city: string | null
   instagram_url: string | null
+  career_start_year: number | null
   years_in_industry: number
   oldest_photo_url: string | null
   oldest_photo_date: string | null

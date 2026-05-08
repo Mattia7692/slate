@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isFounder } from '@/lib/founder'
-import { computeLevel } from '@/lib/xp'
+import { computeLevel, yearsFromStartYear } from '@/lib/xp'
 
 async function getCurrentUserId() {
   const supabase = await createClient()
@@ -29,7 +29,8 @@ export async function adminUpdateProfile(profileId: string, formData: FormData) 
   const bio = (formData.get('bio') as string).trim()
   const city = (formData.get('city') as string).trim()
   const instagram_url = (formData.get('instagram_url') as string).trim()
-  const years_in_industry = parseInt(formData.get('years_in_industry') as string) || 0
+  const career_start_year = parseInt(formData.get('career_start_year') as string) || null
+  const years_in_industry = career_start_year ? yearsFromStartYear(career_start_year) : 0
   const xp = parseInt(formData.get('xp') as string) || 0
 
   if (full_name.length < 2) return { error: 'Il nome deve avere almeno 2 caratteri.' }
@@ -42,6 +43,7 @@ export async function adminUpdateProfile(profileId: string, formData: FormData) 
       bio: bio || null,
       city: city || null,
       instagram_url: instagram_url || null,
+      career_start_year,
       years_in_industry,
       xp,
       level: computeLevel(xp),

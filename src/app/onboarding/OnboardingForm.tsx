@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { createProfile } from './actions'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { computeSeniorityBonus } from '@/lib/xp'
+import { computeSeniorityBonus, yearsFromStartYear } from '@/lib/xp'
 import type { UserRole } from '@/types'
 
 // ============================================================
@@ -19,7 +19,7 @@ interface FormState {
   bio: string
   city: string
   instagram_url: string
-  years_in_industry: number
+  career_start_year: number | null
 }
 
 const INITIAL_STATE: FormState = {
@@ -28,7 +28,7 @@ const INITIAL_STATE: FormState = {
   bio: '',
   city: '',
   instagram_url: '',
-  years_in_industry: 0,
+  career_start_year: null,
 }
 
 const STEPS = ['Ruolo', 'Profilo', 'Foto'] as const
@@ -180,7 +180,7 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
         bio: form.bio,
         city: form.city,
         instagram_url: form.instagram_url,
-        years_in_industry: form.years_in_industry,
+        career_start_year: form.career_start_year,
         oldest_photo_url: oldestPhotoUrl,
         oldest_photo_date: oldestPhotoDate,
         oldest_photo_exif: oldestPhotoExif,
@@ -338,28 +338,34 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-neutral-300">
-              Anni di esperienza nel settore
+              Anno in cui hai iniziato a lavorare nel settore
             </label>
             <input
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
-              placeholder="es. 5"
-              value={form.years_in_industry === 0 ? '' : form.years_in_industry}
+              placeholder={`es. ${new Date().getFullYear() - 5}`}
+              value={form.career_start_year ?? ''}
               onChange={(e) => {
                 const raw = e.target.value.replace(/\D/g, '')
-                set('years_in_industry', raw === '' ? 0 : Math.min(50, parseInt(raw)))
+                if (raw === '') { set('career_start_year', null); return }
+                const year = parseInt(raw)
+                if (raw.length <= 4) set('career_start_year', year)
               }}
+              maxLength={4}
               className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20"
             />
-            {form.years_in_industry > 0 && (
-              <p className="text-xs text-neutral-500">
-                Bonus anzianità:{' '}
-                <span className="text-emerald-400 font-medium">
-                  +{computeSeniorityBonus(form.years_in_industry)} XP
-                </span>
-              </p>
-            )}
+            {form.career_start_year && form.career_start_year >= 1950 && form.career_start_year < new Date().getFullYear() && (() => {
+              const years = yearsFromStartYear(form.career_start_year)
+              return (
+                <p className="text-xs text-neutral-500">
+                  {years} {years === 1 ? 'anno' : 'anni'} nel settore ·{' '}
+                  <span className="text-emerald-400 font-medium">
+                    +{computeSeniorityBonus(years)} XP
+                  </span>
+                </p>
+              )
+            })()}
           </div>
         </div>
       )}

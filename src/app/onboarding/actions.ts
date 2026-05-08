@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { computeSeniorityBonus } from '@/lib/xp'
+import { computeSeniorityBonus, yearsFromStartYear } from '@/lib/xp'
 import type { UserRole } from '@/types'
 
 interface CreateProfilePayload {
@@ -11,7 +11,7 @@ interface CreateProfilePayload {
   bio: string
   city: string
   instagram_url: string
-  years_in_industry: number
+  career_start_year: number | null
   oldest_photo_url: string | null
   oldest_photo_date: string | null
   oldest_photo_exif: Record<string, unknown> | null
@@ -34,7 +34,10 @@ export async function createProfile(payload: CreateProfilePayload) {
 
   if (existing) redirect('/dashboard')
 
-  const seniorityBonus = computeSeniorityBonus(payload.years_in_industry)
+  const yearsInIndustry = payload.career_start_year
+    ? yearsFromStartYear(payload.career_start_year)
+    : 0
+  const seniorityBonus = computeSeniorityBonus(yearsInIndustry)
 
   // Crea il profilo
   const { error: profileError } = await supabase
@@ -46,7 +49,8 @@ export async function createProfile(payload: CreateProfilePayload) {
       bio: payload.bio.trim() || null,
       city: payload.city.trim() || null,
       instagram_url: payload.instagram_url.trim() || null,
-      years_in_industry: payload.years_in_industry,
+      career_start_year: payload.career_start_year,
+      years_in_industry: yearsInIndustry,
       oldest_photo_url: payload.oldest_photo_url,
       oldest_photo_date: payload.oldest_photo_date,
       oldest_photo_exif: payload.oldest_photo_exif,
@@ -76,6 +80,7 @@ export async function createProfile(payload: CreateProfilePayload) {
       profile_id: user.id,
       delta: seniorityBonus,
       reason: 'seniority_bonus',
+      project_id: null,
     })
   }
 

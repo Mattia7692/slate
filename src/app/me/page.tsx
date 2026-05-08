@@ -5,7 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { AppNav } from '@/components/layout/AppNav'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
 import { RoleBadge } from '@/components/profile/RoleBadge'
-import { getLevelProgress, getLevelName } from '@/lib/xp'
+import { getLevelProgress, getLevelName, yearsFromStartYear } from '@/lib/xp'
 import { isFounder } from '@/lib/founder'
 import type { Notification, Profile, ProjectStatus } from '@/types'
 
@@ -274,7 +274,11 @@ export default async function MePage() {
               <p className="text-xs text-neutral-500 mt-0.5">XP totali</p>
             </div>
             <div className="bg-neutral-900 rounded-xl px-4 py-3">
-              <p className="text-2xl font-semibold text-neutral-100">{profile.years_in_industry}</p>
+              <p className="text-2xl font-semibold text-neutral-100">
+                {(profile as Profile & { career_start_year?: number | null }).career_start_year
+                  ? yearsFromStartYear((profile as Profile & { career_start_year: number }).career_start_year)
+                  : profile.years_in_industry}
+              </p>
               <p className="text-xs text-neutral-500 mt-0.5">Anni nel settore</p>
             </div>
           </div>

@@ -96,12 +96,13 @@ export function AdminEditForm({
           <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Dati piattaforma</h2>
 
           <Input
-            label="Anni di esperienza"
-            name="years_in_industry"
+            label="Anno di inizio carriera"
+            name="career_start_year"
             type="number"
-            min={0}
-            max={60}
-            defaultValue={profile.years_in_industry}
+            min={1950}
+            max={new Date().getFullYear()}
+            defaultValue={(profile as Profile & { career_start_year?: number | null }).career_start_year ?? undefined}
+            hint={`Anni nel settore: ${(profile as Profile & { career_start_year?: number | null }).career_start_year ? new Date().getFullYear() - (profile as Profile & { career_start_year: number }).career_start_year : profile.years_in_industry}`}
           />
 
           <Input

@@ -99,9 +99,11 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
             {/* Stats riga */}
             <div className="flex items-center gap-4 text-sm text-neutral-500 flex-wrap">
-              {profile.years_in_industry > 0 && (
-                <span>{profile.years_in_industry} anni nel settore</span>
-              )}
+              {(() => {
+                const csy = (profile as unknown as { career_start_year?: number | null }).career_start_year
+                const years = csy ? new Date().getFullYear() - csy : (profile.years_in_industry as number)
+                return years > 0 ? <span>{years} anni nel settore</span> : null
+              })()}
               {avgRating && (
                 <span className="flex items-center gap-1">
                   <span className="text-amber-400">★</span>

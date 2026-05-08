@@ -33,6 +33,14 @@ export function getLevelProgress(xp: number): number {
 }
 
 // ============================================================
+// Anni nel settore (calcolato dinamicamente dall'anno di inizio)
+// ============================================================
+
+export function yearsFromStartYear(careerStartYear: number): number {
+  return Math.max(0, new Date().getFullYear() - careerStartYear)
+}
+
+// ============================================================
 // Bonus anzianità (one-time al completamento profilo)
 // ============================================================
 

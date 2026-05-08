@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { getLevelName, computeSeniorityBonus } from '@/lib/xp'
+import { getLevelName, computeSeniorityBonus, yearsFromStartYear } from '@/lib/xp'
 import { isFounder } from '@/lib/founder'
 import { AdminActionsPanel } from './AdminActionsPanel'
 import { RoleBadge } from '@/components/profile/RoleBadge'
@@ -145,11 +145,17 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
       <div className="grid grid-cols-2 gap-4">
         <InfoCard label="Livello" value={`${getLevelName(profile.level)} (Lv. ${profile.level})`} />
         <InfoCard label="XP totali" value={`${profile.xp} XP`} />
-        <InfoCard
-          label="Esperienza"
-          value={`${profile.years_in_industry} anni`}
-          sub={`Bonus anzianità: +${computeSeniorityBonus(profile.years_in_industry)} XP`}
-        />
+        {(() => {
+          const csy = (profile as Profile & { career_start_year?: number | null }).career_start_year
+          const years = csy ? yearsFromStartYear(csy) : profile.years_in_industry
+          return (
+            <InfoCard
+              label="Esperienza"
+              value={`${years} anni${csy ? ` (dal ${csy})` : ''}`}
+              sub={`Bonus anzianità: +${computeSeniorityBonus(years)} XP`}
+            />
+          )
+        })()}
         <InfoCard
           label="Iscritto il"
           value={new Date(profile.created_at).toLocaleDateString('it-IT', {

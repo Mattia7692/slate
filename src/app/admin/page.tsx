@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { getLevelName } from '@/lib/xp'
+import { getLevelName, yearsFromStartYear } from '@/lib/xp'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
 import { RoleBadge } from '@/components/profile/RoleBadge'
 import type { ProfileStatus, Profile } from '@/types'
@@ -37,7 +37,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   let query = admin
     .from('profiles')
-    .select('id, full_name, role, city, xp, level, status, created_at, years_in_industry, avatar_url')
+    .select('id, full_name, role, city, xp, level, status, created_at, years_in_industry, career_start_year, avatar_url')
     .order('created_at', { ascending: false })
 
   if (status !== 'all') {
@@ -112,7 +112,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   {' · '}
                   {getLevelName(profile.level)} ({profile.xp} XP)
                   {' · '}
-                  {profile.years_in_industry} anni esperienza
+                  {(profile as unknown as { career_start_year?: number | null }).career_start_year
+                    ? yearsFromStartYear((profile as unknown as { career_start_year: number }).career_start_year)
+                    : profile.years_in_industry} anni esperienza
                 </p>
               </div>
 

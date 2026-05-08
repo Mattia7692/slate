@@ -1,8 +1,8 @@
 'use client'
 
-import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { approveProfile, suspendProfile, setPendingProfile, deleteProfile } from '../actions'
 import { toggleAdmin } from './toggleAdminAction'
 import type { ProfileStatus } from '@/types'
@@ -30,6 +30,7 @@ export function AdminActionsPanel({
   const [confirmAdmin, setConfirmAdmin] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
 
   function handleStatus(action: (id: string) => Promise<{ error: string | null }>) {
     startTransition(async () => {
@@ -57,160 +58,137 @@ export function AdminActionsPanel({
   }
 
   return (
-    <section className="rounded-xl border border-orange-500/30 bg-orange-500/5 p-4 space-y-4">
-      <h2 className="text-xs font-semibold text-orange-400 uppercase tracking-wider">Azioni profilo</h2>
+    <section className="rounded-xl border border-orange-500/30 bg-orange-500/5 p-3 space-y-2">
+      <h2 className="text-[10px] font-semibold text-orange-400 uppercase tracking-wider px-1">Azioni profilo</h2>
 
-      {/* Stato */}
-      <div className="space-y-1.5">
-        <p className="text-[10px] text-neutral-600 uppercase tracking-wider">Stato account</p>
-        <div className="flex flex-wrap gap-2">
-          {currentStatus !== 'approved' && (
-            <ActionBtn
-              onClick={() => handleStatus(approveProfile)}
+      <div className="grid grid-cols-2 gap-2">
+        {/* Colonna sinistra: gestione profilo */}
+        <div className="flex flex-col gap-2">
+          {(!isFounderProfile || currentIsFounder) && (
+            <PanelBtn
+              href={`/admin/${profileId}/edit`}
+              color="neutral"
               disabled={isPending}
-              color="green"
             >
-              Approva
-            </ActionBtn>
+              Modifica profilo
+            </PanelBtn>
           )}
+          {currentIsFounder && !isFounderProfile && (
+            confirmAdmin ? (
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[10px] text-neutral-400 leading-tight px-0.5">
+                  {isAdmin ? 'Rimuovere i permessi?' : `Promuovere ${profileName.split(' ')[0]}?`}
+                </p>
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={handleToggleAdmin}
+                    disabled={isPending}
+                    className="flex-1 text-xs font-medium py-1 rounded-lg bg-neutral-700 hover:bg-neutral-600 text-white transition-colors disabled:opacity-50"
+                  >
+                    {isPending ? '...' : 'Sì'}
+                  </button>
+                  <button
+                    onClick={() => setConfirmAdmin(false)}
+                    className="flex-1 text-xs py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-400 transition-colors"
+                  >
+                    No
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <PanelBtn
+                onClick={handleToggleAdmin}
+                color={isAdmin ? 'red' : 'violet'}
+                disabled={isPending}
+              >
+                {isAdmin ? 'Revoca admin' : 'Promuovi admin'}
+              </PanelBtn>
+            )
+          )}
+          {currentStatus !== 'approved' && (
+            <PanelBtn onClick={() => handleStatus(approveProfile)} color="green" disabled={isPending}>
+              Approva
+            </PanelBtn>
+          )}
+        </div>
+
+        {/* Colonna destra: stato + elimina */}
+        <div className="flex flex-col gap-2">
           {currentStatus !== 'suspended' && !isSelf && (
-            <ActionBtn
-              onClick={() => handleStatus(suspendProfile)}
-              disabled={isPending}
-              color="red"
-            >
+            <PanelBtn onClick={() => handleStatus(suspendProfile)} color="red" disabled={isPending}>
               Sospendi
-            </ActionBtn>
+            </PanelBtn>
           )}
           {currentStatus !== 'pending' && (
-            <ActionBtn
-              onClick={() => handleStatus(setPendingProfile)}
-              disabled={isPending}
-              color="neutral"
-            >
-              Rimetti in attesa
-            </ActionBtn>
+            <PanelBtn onClick={() => handleStatus(setPendingProfile)} color="neutral" disabled={isPending}>
+              In attesa
+            </PanelBtn>
+          )}
+          {!isFounderProfile && !isSelf && (
+            confirmDelete ? (
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[10px] text-red-400 leading-tight px-0.5">Eliminare definitivamente?</p>
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={handleDelete}
+                    disabled={isPending}
+                    className="flex-1 text-xs font-medium py-1 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 transition-colors disabled:opacity-50"
+                  >
+                    {isPending ? '...' : 'Sì'}
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    className="flex-1 text-xs py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-400 transition-colors"
+                  >
+                    No
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <PanelBtn onClick={handleDelete} color="ghost-red" disabled={isPending}>
+                Elimina profilo
+              </PanelBtn>
+            )
           )}
         </div>
       </div>
-
-      {/* Modifica profilo */}
-      {(!isFounderProfile || currentIsFounder) && (
-        <div className="border-t border-orange-500/10 pt-3 space-y-1.5">
-          <p className="text-[10px] text-neutral-600 uppercase tracking-wider">Profilo</p>
-          <Link
-            href={`/admin/${profileId}/edit`}
-            className="inline-flex items-center gap-1.5 text-sm text-neutral-300 hover:text-white transition-colors"
-          >
-            Modifica profilo
-            <span className="text-neutral-600">→</span>
-          </Link>
-        </div>
-      )}
-
-      {/* Promuovi / Revoca admin */}
-      {currentIsFounder && !isFounderProfile && (
-        <div className="border-t border-orange-500/10 pt-3 space-y-1.5">
-          <p className="text-[10px] text-neutral-600 uppercase tracking-wider">Permessi</p>
-          {confirmAdmin ? (
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-neutral-400">
-                {isAdmin
-                  ? 'Rimuovere i permessi admin?'
-                  : `Promuovere ${profileName.split(' ')[0]} ad admin?`}
-              </span>
-              <button
-                onClick={handleToggleAdmin}
-                disabled={isPending}
-                className="text-xs font-medium px-2.5 py-1 rounded-lg bg-neutral-700 hover:bg-neutral-600 text-white transition-colors disabled:opacity-50"
-              >
-                {isPending ? '...' : 'Conferma'}
-              </button>
-              <button
-                onClick={() => setConfirmAdmin(false)}
-                className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
-              >
-                Annulla
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={handleToggleAdmin}
-              className={[
-                'text-sm font-medium transition-colors',
-                isAdmin
-                  ? 'text-red-400 hover:text-red-300'
-                  : 'text-violet-400 hover:text-violet-300',
-              ].join(' ')}
-            >
-              {isAdmin ? 'Revoca admin' : 'Promuovi ad admin'}
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Elimina profilo */}
-      {!isFounderProfile && !isSelf && (
-        <div className="border-t border-orange-500/10 pt-3 space-y-1.5">
-          <p className="text-[10px] text-neutral-600 uppercase tracking-wider">Zona pericolosa</p>
-          {confirmDelete ? (
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-red-400 font-medium">
-                Eliminare definitivamente {profileName}?
-              </span>
-              <button
-                onClick={handleDelete}
-                disabled={isPending}
-                className="text-xs font-medium px-2.5 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 transition-colors disabled:opacity-50"
-              >
-                {isPending ? 'Eliminazione...' : 'Conferma'}
-              </button>
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
-              >
-                Annulla
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={handleDelete}
-              className="text-sm text-neutral-600 hover:text-red-400 transition-colors"
-            >
-              Elimina profilo
-            </button>
-          )}
-        </div>
-      )}
     </section>
   )
 }
 
-function ActionBtn({
+type BtnColor = 'green' | 'red' | 'violet' | 'neutral' | 'ghost-red'
+
+const COLOR_STYLES: Record<BtnColor, string> = {
+  green:     'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25',
+  red:       'bg-red-500/15 border-red-500/30 text-red-400 hover:bg-red-500/25',
+  violet:    'bg-violet-500/15 border-violet-500/30 text-violet-400 hover:bg-violet-500/25',
+  neutral:   'bg-neutral-700/40 border-neutral-600/40 text-neutral-300 hover:bg-neutral-700/70',
+  'ghost-red': 'bg-transparent border-neutral-700 text-neutral-500 hover:border-red-500/40 hover:text-red-400',
+}
+
+function PanelBtn({
   children,
   onClick,
-  disabled,
+  href,
   color,
+  disabled,
 }: {
   children: React.ReactNode
-  onClick: () => void
-  disabled: boolean
-  color: 'green' | 'red' | 'neutral'
+  onClick?: () => void
+  href?: string
+  color: BtnColor
+  disabled?: boolean
 }) {
-  const styles = {
-    green: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25',
-    red: 'bg-red-500/15 border-red-500/30 text-red-400 hover:bg-red-500/25',
-    neutral: 'bg-neutral-700/50 border-neutral-600/50 text-neutral-300 hover:bg-neutral-700',
+  const base = 'w-full text-xs font-medium px-2 py-2 rounded-lg border transition-colors disabled:opacity-50 text-center leading-tight'
+  if (href) {
+    return (
+      <a href={href} className={[base, COLOR_STYLES[color]].join(' ')}>
+        {children}
+      </a>
+    )
   }
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={[
-        'text-sm font-medium px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-50',
-        styles[color],
-      ].join(' ')}
-    >
+    <button onClick={onClick} disabled={disabled} className={[base, COLOR_STYLES[color]].join(' ')}>
       {children}
     </button>
   )

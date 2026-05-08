@@ -9,6 +9,7 @@ import { AdminProfileActions } from './AdminProfileActions'
 import { ToggleAdminButton } from './ToggleAdminButton'
 import { DeleteProfileButton } from './DeleteProfileButton'
 import type { Profile, ProfileStatus } from '@/types'
+import type { PhotoExif } from '@/lib/exif'
 
 const STATUS_BADGE: Record<ProfileStatus, string> = {
   pending: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
@@ -187,36 +188,55 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
       {/* Foto di verifica anzianità — visibile solo qui, non nel profilo pubblico */}
       {(oldestPhotoSignedUrl || profile.oldest_photo_url) && (
         <section className="space-y-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-          <div>
-            <h2 className="text-sm font-medium text-amber-400 uppercase tracking-wider">
-              Foto di verifica anzianità
-            </h2>
-            {profile.oldest_photo_date ? (
-              <p className="text-sm text-neutral-300 mt-1 font-medium">
-                Scattata il{' '}
-                {new Date(profile.oldest_photo_date).toLocaleDateString('it-IT', {
-                  day: 'numeric', month: 'long', year: 'numeric',
-                })}
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-sm font-medium text-amber-400 uppercase tracking-wider">
+                Foto di verifica anzianità
+              </h2>
+              <p className="text-xs text-neutral-600 mt-0.5">
+                Riservata agli amministratori — non visibile nel profilo pubblico
               </p>
-            ) : (
-              <p className="text-xs text-neutral-500 mt-0.5">
-                Data EXIF non disponibile
-              </p>
-            )}
-            <p className="text-xs text-neutral-600 mt-0.5">
-              Riservata agli amministratori — non visibile nel profilo pubblico
-            </p>
-          </div>
-          {(oldestPhotoSignedUrl ?? profile.oldest_photo_url) && (
-            <div className="relative w-full max-w-sm aspect-video rounded-xl overflow-hidden border border-neutral-800">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={(oldestPhotoSignedUrl ?? profile.oldest_photo_url)!}
-                alt="Foto di verifica anzianità"
-                className="absolute inset-0 w-full h-full object-cover"
-              />
             </div>
-          )}
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Foto */}
+            {(oldestPhotoSignedUrl ?? profile.oldest_photo_url) && (
+              <div className="relative w-full sm:w-64 aspect-video rounded-xl overflow-hidden border border-neutral-800 shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={(oldestPhotoSignedUrl ?? profile.oldest_photo_url)!}
+                  alt="Foto di verifica anzianità"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              </div>
+            )}
+
+            {/* EXIF panel — stile Lightroom */}
+            {(() => {
+              const exif = (profile as unknown as Profile).oldest_photo_exif as PhotoExif | null
+              const date = profile.oldest_photo_date
+              const hasData = date || exif?.camera || exif?.lens || exif?.aperture || exif?.shutter || exif?.iso
+              return (
+                <div className="flex-1 rounded-xl border border-neutral-800 bg-neutral-900 p-3 font-mono text-xs space-y-2">
+                  <p className="text-neutral-500 uppercase tracking-wider text-[10px] mb-2">Metadati EXIF</p>
+                  {hasData ? (
+                    <>
+                      <AdminExifRow label="Data" value={date ? new Date(date).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) : null} />
+                      <AdminExifRow label="Camera" value={exif?.camera ?? null} />
+                      <AdminExifRow label="Obiettivo" value={exif?.lens ?? null} />
+                      <AdminExifRow label="Focale" value={exif?.focal_length ?? null} />
+                      <AdminExifRow label="Apertura" value={exif?.aperture ?? null} />
+                      <AdminExifRow label="Esposizione" value={exif?.shutter ?? null} />
+                      <AdminExifRow label="ISO" value={exif?.iso != null ? String(exif.iso) : null} />
+                    </>
+                  ) : (
+                    <p className="text-neutral-600 text-[11px] font-sans">Nessun dato EXIF disponibile.</p>
+                  )}
+                </div>
+              )
+            })()}
+          </div>
         </section>
       )}
 
@@ -253,6 +273,16 @@ function InfoCard({ label, value, sub }: { label: string; value: string; sub?: s
       <p className="text-xs text-neutral-500">{label}</p>
       <p className="text-sm font-medium">{value}</p>
       {sub && <p className="text-xs text-neutral-600">{sub}</p>}
+    </div>
+  )
+}
+
+function AdminExifRow({ label, value }: { label: string; value: string | null }) {
+  if (!value) return null
+  return (
+    <div className="flex items-baseline justify-between gap-2">
+      <span className="text-neutral-600 text-[10px] uppercase tracking-wider shrink-0">{label}</span>
+      <span className="text-neutral-300 text-right">{value}</span>
     </div>
   )
 }

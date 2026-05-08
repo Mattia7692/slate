@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import exifr from 'exifr'
+import { readPhotoExif } from '@/lib/exif'
 import { createClient } from '@/lib/supabase/client'
 import { createProfile } from './actions'
 import { Button } from '@/components/ui/Button'
@@ -47,6 +47,7 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
   const [oldestPhotoFile, setOldestPhotoFile] = useState<File | null>(null)
   const [oldestPhotoPreview, setOldestPhotoPreview] = useState<string | null>(null)
   const [oldestPhotoDate, setOldestPhotoDate] = useState<string | null>(null)
+  const [oldestPhotoExif, setOldestPhotoExif] = useState<Record<string, unknown> | null>(null)
 
   // Foto profilo (avatar)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
@@ -75,15 +76,11 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
     setOldestPhotoFile(file)
     setOldestPhotoPreview(URL.createObjectURL(file))
     setOldestPhotoDate(null)
-    try {
-      const exif = await exifr.parse(file, ['DateTimeOriginal', 'CreateDate'])
-      const raw = exif?.DateTimeOriginal ?? exif?.CreateDate
-      if (raw) {
-        const d = raw instanceof Date ? raw : new Date(raw)
-        if (!isNaN(d.getTime())) setOldestPhotoDate(d.toISOString())
-      }
-    } catch {
-      // EXIF non disponibile — nessun problema
+    setOldestPhotoExif(null)
+    const exif = await readPhotoExif(file)
+    if (exif) {
+      setOldestPhotoDate(exif.date)
+      setOldestPhotoExif(exif as Record<string, unknown>)
     }
   }
 
@@ -186,6 +183,7 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
         years_in_industry: form.years_in_industry,
         oldest_photo_url: oldestPhotoUrl,
         oldest_photo_date: oldestPhotoDate,
+        oldest_photo_exif: oldestPhotoExif,
         avatar_url: avatarUrl,
         portfolio_urls: portfolioUrls,
       })

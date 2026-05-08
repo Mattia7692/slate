@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ProfileEditForm } from './ProfileEditForm'
 import { OldestPhotoSection } from './OldestPhotoSection'
+import type { PhotoExif } from '@/lib/exif'
 import { XPBadge } from '@/components/profile/XPBadge'
 import { isFounder } from '@/lib/founder'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
@@ -68,6 +69,7 @@ export default async function ProfileEditPage() {
           profileId={user.id}
           initialSignedUrl={oldestPhotoSignedUrl}
           initialDate={(profile as Profile).oldest_photo_date ?? null}
+          initialExif={((profile as Profile).oldest_photo_exif as PhotoExif | null) ?? null}
         />
       </div>
     </div>

@@ -1,19 +1,21 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import exifr from 'exifr'
 import { createClient } from '@/lib/supabase/client'
+import { readPhotoExif, type PhotoExif } from '@/lib/exif'
 import { updateOldestPhoto } from './actions'
 
 interface Props {
   profileId: string
   initialSignedUrl: string | null
   initialDate: string | null
+  initialExif: PhotoExif | null
 }
 
-export function OldestPhotoSection({ profileId, initialSignedUrl, initialDate }: Props) {
+export function OldestPhotoSection({ profileId, initialSignedUrl, initialDate, initialExif }: Props) {
   const [preview, setPreview] = useState<string | null>(initialSignedUrl)
   const [date, setDate] = useState<string | null>(initialDate)
+  const [exif, setExif] = useState<PhotoExif | null>(initialExif)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -24,21 +26,12 @@ export function OldestPhotoSection({ profileId, initialSignedUrl, initialDate }:
     setUploading(true)
     setError(null)
 
-    // Preview ottimistico
     const objectUrl = URL.createObjectURL(file)
     setPreview(objectUrl)
 
-    // Leggi EXIF
-    let exifDate: string | null = null
-    try {
-      const exif = await exifr.parse(file, ['DateTimeOriginal', 'CreateDate'])
-      const raw = exif?.DateTimeOriginal ?? exif?.CreateDate
-      if (raw) {
-        const d = raw instanceof Date ? raw : new Date(raw)
-        if (!isNaN(d.getTime())) exifDate = d.toISOString()
-      }
-    } catch { /* nessun EXIF */ }
-    setDate(exifDate)
+    const photoExif = await readPhotoExif(file)
+    setExif(photoExif)
+    setDate(photoExif?.date ?? null)
 
     try {
       const ext = file.name.split('.').pop() ?? 'jpg'
@@ -50,7 +43,6 @@ export function OldestPhotoSection({ profileId, initialSignedUrl, initialDate }:
 
       if (uploadError) throw new Error(uploadError.message)
 
-      // URL firmato per la preview (bucket privato)
       const { data: signed } = await supabase.storage
         .from('oldest-photos')
         .createSignedUrl(path, 3600)
@@ -58,9 +50,8 @@ export function OldestPhotoSection({ profileId, initialSignedUrl, initialDate }:
       URL.revokeObjectURL(objectUrl)
       if (signed?.signedUrl) setPreview(signed.signedUrl)
 
-      // Salviamo il public URL come riferimento nel DB (l'admin legge via signed URL server-side)
       const { data: pub } = supabase.storage.from('oldest-photos').getPublicUrl(path)
-      const result = await updateOldestPhoto(pub.publicUrl, exifDate)
+      const result = await updateOldestPhoto(pub.publicUrl, photoExif?.date ?? null, photoExif as Record<string, unknown> | null)
       if (result?.error) throw new Error(result.error)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Errore durante il caricamento.')
@@ -83,21 +74,27 @@ export function OldestPhotoSection({ profileId, initialSignedUrl, initialDate }:
 
       {preview ? (
         <div className="space-y-3">
-          <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-neutral-800">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={preview} alt="Foto anzianità" className="absolute inset-0 w-full h-full object-cover" />
-          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative w-full sm:w-56 aspect-video rounded-xl overflow-hidden border border-neutral-800 shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={preview} alt="Foto anzianità" className="absolute inset-0 w-full h-full object-cover" />
+            </div>
 
-          {date ? (
-            <p className="text-xs text-neutral-500">
-              Data EXIF rilevata:{' '}
-              <span className="text-neutral-300 font-medium">
-                {new Date(date).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
-              </span>
-            </p>
-          ) : (
-            <p className="text-xs text-neutral-600">Dati EXIF non disponibili per questa foto.</p>
-          )}
+            {/* EXIF panel — stile Lightroom */}
+            <div className="flex-1 rounded-xl border border-neutral-800 bg-neutral-900 p-3 space-y-2 text-xs font-mono">
+              <p className="text-neutral-500 uppercase tracking-wider text-[10px] mb-2">Metadati EXIF</p>
+              <ExifRow label="Data" value={date ? new Date(date).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) : null} />
+              <ExifRow label="Camera" value={exif?.camera ?? null} />
+              <ExifRow label="Obiettivo" value={exif?.lens ?? null} />
+              <ExifRow label="Focale" value={exif?.focal_length ?? null} />
+              <ExifRow label="Apertura" value={exif?.aperture ?? null} />
+              <ExifRow label="Esposizione" value={exif?.shutter ?? null} />
+              <ExifRow label="ISO" value={exif?.iso != null ? String(exif.iso) : null} />
+              {!date && !exif?.camera && !exif?.lens && (
+                <p className="text-neutral-600 text-[11px] font-sans">Nessun dato EXIF disponibile.</p>
+              )}
+            </div>
+          </div>
 
           <button
             type="button"
@@ -132,5 +129,15 @@ export function OldestPhotoSection({ profileId, initialSignedUrl, initialDate }:
         onChange={(e) => handleFile(e.target.files?.[0])}
       />
     </section>
+  )
+}
+
+function ExifRow({ label, value }: { label: string; value: string | null }) {
+  if (!value) return null
+  return (
+    <div className="flex items-baseline justify-between gap-2">
+      <span className="text-neutral-600 text-[10px] uppercase tracking-wider shrink-0">{label}</span>
+      <span className="text-neutral-300 text-right">{value}</span>
+    </div>
   )
 }

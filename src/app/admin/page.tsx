@@ -62,20 +62,20 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       </div>
 
       {/* Tab filtro status */}
-      <div className="flex gap-2 border-b border-neutral-800">
+      <div className="flex items-center gap-2 flex-wrap">
         {STATUS_FILTER_OPTIONS.map(({ label, value }) => (
           <Link
             key={value}
             href={`/admin?status=${value}`}
             className={[
-              'px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
+              'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
               status === value
-                ? 'border-white text-white'
-                : 'border-transparent text-neutral-500 hover:text-neutral-300',
+                ? 'bg-white text-neutral-900 border-white'
+                : 'text-neutral-400 border-neutral-700 hover:border-neutral-500 hover:text-neutral-200',
             ].join(' ')}
           >
             {label}
-            <span className="ml-2 text-xs text-neutral-600">
+            <span className={['ml-1.5', status === value ? 'text-neutral-500' : 'text-neutral-600'].join(' ')}>
               {countMap[value]}
             </span>
           </Link>

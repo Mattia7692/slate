@@ -157,7 +157,7 @@ export default function LandingPage() {
       {/* ── HERO ──────────────────────────────────────────────── */}
       <section className="flex flex-col items-center justify-center text-center px-6 py-28 md:py-40 max-w-3xl mx-auto">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="Slate" className="h-16 w-auto mx-auto mb-8 invert mix-blend-multiply" />
+        <img src="/logo.png" alt="Slate" className="h-28 w-auto mx-auto mb-8 invert mix-blend-multiply" />
         <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-tight mb-6">
           La fotografia professionale merita un posto serio.
         </h1>

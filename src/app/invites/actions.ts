@@ -7,7 +7,15 @@ import { calculatePayment } from '@/lib/payment'
 
 // ── Invia proposta di collaborazione ──────────────────────────────
 
-export async function sendInvite(receiverId: string, message: string | null) {
+interface SendInvitePayload {
+  message: string | null
+  creative_idea: string
+  location: string
+  alternative_amount: number | null
+  moodboard_urls: string[]
+}
+
+export async function sendInvite(receiverId: string, payload: SendInvitePayload) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
@@ -49,7 +57,11 @@ export async function sendInvite(receiverId: string, message: string | null) {
     .insert({
       sender_id: user.id,
       receiver_id: receiverId,
-      message: message?.trim() || null,
+      message: payload.message,
+      creative_idea: payload.creative_idea,
+      location: payload.location,
+      alternative_amount: payload.alternative_amount,
+      moodboard_urls: payload.moodboard_urls,
       status: 'pending',
       payer_role: payerRole,
       amount,
@@ -66,7 +78,7 @@ export async function sendInvite(receiverId: string, message: string | null) {
     profile_id: receiverId,
     type: 'invite_received',
     title: `${senderProfile.full_name} ti ha proposto una collaborazione`,
-    body: message?.trim() || null,
+    body: payload.message,
     invite_id: invite.id,
   })
 

@@ -147,6 +147,8 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               targetRole={profile.role}
               currentLevel={myProfile.level}
               currentRole={myProfile.role}
+              currentName={myProfile.full_name}
+              currentUserId={user!.id}
             />
             <MessageButton targetUserId={id} />
           </div>

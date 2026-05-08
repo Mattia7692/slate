@@ -31,7 +31,7 @@ export default async function ProfileEditPage() {
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('portfolio_items').select('*').eq('profile_id', user.id).order('order_index'),
     ]),
-    adminClient.from('notifications').select('*').eq('profile_id', user.id).order('created_at', { ascending: false }).limit(30),
+    adminClient.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(30),
     supabase.from('projects')
       .select('id, status')
       .or(`photographer_id.eq.${user.id},model_id.eq.${user.id}`)

@@ -79,13 +79,14 @@ export async function sendInvite(receiverId: string, payload: SendInvitePayload)
 
   if (inviteError) return { error: inviteError.message }
 
-  await adminClient.from('notifications').insert({
-    profile_id: receiverId,
+  const { error: notifError } = await adminClient.from('notifications').insert({
+    user_id: receiverId,
     type: 'invite_received',
-    title: `${senderProfile.full_name} ti ha proposto una collaborazione`,
-    body: payload.message,
+    title: 'Nuova proposta di collaborazione',
+    body: `${senderProfile.full_name}${payload.creative_idea ? ': ' + payload.creative_idea.slice(0, 100) : ''}`,
     invite_id: invite.id,
   })
+  if (notifError) console.error('Notifica non creata:', notifError.message)
 
   return { error: null, inviteId: invite.id }
 }
@@ -149,7 +150,7 @@ export async function acceptInvite(inviteId: string) {
       .eq('id', inviteId),
 
     adminClient.from('notifications').insert({
-      profile_id: invite.from_profile_id,
+      user_id: invite.from_profile_id,
       type: 'invite_accepted',
       title: `${receiver.full_name} ha accettato la tua proposta`,
       body: null,
@@ -194,7 +195,7 @@ export async function declineInvite(inviteId: string) {
       .eq('id', inviteId),
 
     adminClient.from('notifications').insert({
-      profile_id: invite.from_profile_id,
+      user_id: invite.from_profile_id,
       type: 'invite_declined',
       title: `${receiver.full_name} ha rifiutato la tua proposta`,
       body: null,
@@ -223,7 +224,7 @@ export async function markNotificationRead(notificationId: string) {
     .from('notifications')
     .update({ read_at: new Date().toISOString() })
     .eq('id', notificationId)
-    .eq('profile_id', user.id)
+    .eq('user_id', user.id)
 
   return { error: error?.message ?? null }
 }

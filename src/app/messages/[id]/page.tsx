@@ -24,7 +24,7 @@ export default async function ConversationPage({ params }: Props) {
     .single()
 
   const adminClient = createAdminClient()
-  const { data: rawNotifications } = await adminClient.from('notifications').select('*').eq('profile_id', user.id).order('created_at', { ascending: false }).limit(30)
+  const { data: rawNotifications } = await adminClient.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(30)
   const notifications = (rawNotifications ?? []) as Notification[]
   const userInitials = (currentProfile?.full_name ?? '').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
 

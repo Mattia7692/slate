@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { Profile, PortfolioItem } from '@/types'
+import { RoleBadge } from './RoleBadge'
 
 const LEVEL_BADGE: Record<number, { label: string; bg: string }> = {
   1: { label: 'Newcomer',    bg: 'bg-neutral-500' },
@@ -92,10 +93,10 @@ export function ProfileCard({ profile, coverImage, avatarUrl }: ProfileCardProps
 
       {/* Footer: ruolo · città */}
       <div className="px-3 py-2.5">
-        <p className="text-xs text-neutral-500 truncate">
-          {profile.role === 'photographer' ? 'Fotografo' : 'Modella / Modello'}
-          {profile.city ? ` · ${profile.city}` : ''}
-        </p>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <RoleBadge role={profile.role} />
+          {profile.city && <span className="text-xs text-neutral-500">{profile.city}</span>}
+        </div>
       </div>
     </Link>
   )

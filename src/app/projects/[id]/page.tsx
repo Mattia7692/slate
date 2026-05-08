@@ -42,7 +42,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   const other = isPhotographer ? project.model : project.photographer
 
   const adminClient = createAdminClient()
-  const { data: rawNotifications } = await adminClient.from('notifications').select('*').eq('profile_id', user.id).order('created_at', { ascending: false }).limit(30)
+  const { data: rawNotifications } = await adminClient.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(30)
   const notifications = (rawNotifications ?? []) as Notification[]
   const userInitials = (me.full_name as string).split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
 

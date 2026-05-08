@@ -50,7 +50,7 @@ export function NotificationBell({ initialNotifications, currentUserId }: Notifi
           event: 'INSERT',
           schema: 'public',
           table: 'notifications',
-          filter: `profile_id=eq.${currentUserId}`,
+          filter: `user_id=eq.${currentUserId}`,
         },
         (payload) => {
           setNotifications((prev) => [payload.new as Notification, ...prev])
@@ -62,7 +62,7 @@ export function NotificationBell({ initialNotifications, currentUserId }: Notifi
           event: 'UPDATE',
           schema: 'public',
           table: 'notifications',
-          filter: `profile_id=eq.${currentUserId}`,
+          filter: `user_id=eq.${currentUserId}`,
         },
         (payload) => {
           setNotifications((prev) =>

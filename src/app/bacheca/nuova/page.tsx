@@ -13,7 +13,7 @@ export default async function NuovaVisionePage() {
   const adminClient = createAdminClient()
   const [{ data: profile }, { data: rawNotifications }] = await Promise.all([
     supabase.from('profiles').select('status, role, full_name, avatar_url').eq('id', user.id).single(),
-    adminClient.from('notifications').select('*').eq('profile_id', user.id).order('created_at', { ascending: false }).limit(30),
+    adminClient.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(30),
   ])
 
   if (profile?.status !== 'approved') redirect('/dashboard')

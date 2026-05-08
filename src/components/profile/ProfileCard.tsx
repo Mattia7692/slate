@@ -18,11 +18,13 @@ function getInitials(name: string): string {
 interface ProfileCardProps {
   profile: Profile
   coverImage?: PortfolioItem | null
+  avatarUrl?: string | null
 }
 
-export function ProfileCard({ profile, coverImage }: ProfileCardProps) {
+export function ProfileCard({ profile, coverImage, avatarUrl }: ProfileCardProps) {
   const badge = LEVEL_BADGE[profile.level] ?? LEVEL_BADGE[1]
   const hasBio = !!profile.bio
+  const imageSrc = avatarUrl ?? coverImage?.image_url ?? null
 
   return (
     <Link
@@ -33,10 +35,10 @@ export function ProfileCard({ profile, coverImage }: ProfileCardProps) {
       <div className="relative aspect-[4/3] overflow-hidden bg-neutral-800" style={{ maxHeight: '220px' }}>
 
         {/* Cover o placeholder iniziali */}
-        {coverImage ? (
+        {imageSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={coverImage.image_url}
+            src={imageSrc}
             alt={profile.full_name}
             className="absolute inset-0 w-full h-full object-cover"
           />

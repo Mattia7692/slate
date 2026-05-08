@@ -39,6 +39,12 @@ export async function sendInvite(receiverId: string, payload: SendInvitePayload)
 
   const { payerRole, amount } = calculatePayment(photographerLevel, modelLevel)
 
+  // Il DB accetta 'from'|'to'|'tfp' — mappiamo dal ruolo al punto di vista del mittente
+  const proposedPayer =
+    payerRole === 'tfp' ? 'tfp'
+    : (senderProfile.role === payerRole) ? 'from'
+    : 'to'
+
   const adminClient = createAdminClient()
 
   // Controlla se esiste già un invito pending tra questi due utenti
@@ -63,7 +69,7 @@ export async function sendInvite(receiverId: string, payload: SendInvitePayload)
       alternative_amount: payload.alternative_amount,
       moodboard_urls: payload.moodboard_urls,
       status: 'pending',
-      proposed_payer: payerRole,
+      proposed_payer: proposedPayer,
       proposed_amount: amount,
       from_xp_snapshot: senderProfile.xp,
       to_xp_snapshot: receiverProfile.xp,
@@ -113,6 +119,13 @@ export async function acceptInvite(inviteId: string) {
   const photographerId = sender.role === 'photographer' ? sender.id : receiver.id
   const modelId = sender.role === 'model' ? sender.id : receiver.id
 
+  // Converte 'from'|'to'|'tfp' → 'photographer'|'model'|'tfp' per la tabella projects
+  const rawPayer = invite.proposed_payer as string
+  const payerRole =
+    rawPayer === 'tfp' ? 'tfp'
+    : rawPayer === 'from' ? sender.role
+    : receiver.role
+
   const { data: project, error: projectError } = await adminClient
     .from('projects')
     .insert({
@@ -120,7 +133,7 @@ export async function acceptInvite(inviteId: string) {
       model_id: modelId,
       proposed_by: invite.from_profile_id,
       status: 'accepted',
-      payer_role: invite.proposed_payer,
+      payer_role: payerRole,
       amount: invite.proposed_amount,
       invite_id: inviteId,
     })

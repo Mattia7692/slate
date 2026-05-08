@@ -5,9 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { AppNav } from '@/components/layout/AppNav'
 import { ProfileCard } from '@/components/profile/ProfileCard'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
-import type { VisionWithCreator, Profile, PortfolioItem, Notification } from '@/types'
-
-type ProfileWithCover = Profile & { cover: PortfolioItem | null }
+import type { VisionWithCreator, Profile, Notification } from '@/types'
 
 const ROLE_LABEL = { photographer: 'fotografo', model: 'modella' }
 const ROLE_STYLE = {
@@ -124,30 +122,8 @@ export default async function DashboardPage({
 
   const visions = (rawVisions ?? []) as unknown as VisionWithCreator[]
 
-  const allProfileIds = [
-    ...(photographers?.map((p) => p.id) ?? []),
-    ...(models?.map((p) => p.id) ?? []),
-  ]
-
-  const { data: covers } = allProfileIds.length
-    ? await supabase
-        .from('portfolio_items')
-        .select('*')
-        .in('profile_id', allProfileIds)
-        .eq('order_index', 0)
-    : { data: [] }
-
-  const coverMap = new Map(covers?.map((c) => [c.profile_id, c]) ?? [])
-
-  const photographersWithCover: ProfileWithCover[] = (photographers ?? []).map((p) => ({
-    ...(p as unknown as Profile),
-    cover: (coverMap.get(p.id) as PortfolioItem) ?? null,
-  }))
-
-  const modelsWithCover: ProfileWithCover[] = (models ?? []).map((p) => ({
-    ...(p as unknown as Profile),
-    cover: (coverMap.get(p.id) as PortfolioItem) ?? null,
-  }))
+  const photographerProfiles = (photographers ?? []) as unknown as Profile[]
+  const modelProfiles = (models ?? []) as unknown as Profile[]
 
   const PILLS = [
     { label: 'Tutte', value: undefined as string | undefined },
@@ -247,7 +223,7 @@ export default async function DashboardPage({
         <div className="h-px bg-neutral-800/60" />
 
         {/* ── FOTOGRAFI IN EVIDENZA ────────────────────────────── */}
-        {photographersWithCover.length > 0 && (
+        {photographerProfiles.length > 0 && (
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wider">
@@ -258,8 +234,8 @@ export default async function DashboardPage({
               </Link>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {photographersWithCover.map((p) => (
-                <ProfileCard key={p.id} profile={p} coverImage={p.cover} />
+              {photographerProfiles.map((p) => (
+                <ProfileCard key={p.id} profile={p} avatarUrl={p.avatar_url ?? null} />
               ))}
             </div>
           </section>
@@ -268,7 +244,7 @@ export default async function DashboardPage({
         <div className="h-px bg-neutral-800/60" />
 
         {/* ── MODELLE IN EVIDENZA ──────────────────────────────── */}
-        {modelsWithCover.length > 0 && (
+        {modelProfiles.length > 0 && (
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wider">
@@ -279,8 +255,8 @@ export default async function DashboardPage({
               </Link>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {modelsWithCover.map((p) => (
-                <ProfileCard key={p.id} profile={p} coverImage={p.cover} />
+              {modelProfiles.map((p) => (
+                <ProfileCard key={p.id} profile={p} avatarUrl={p.avatar_url ?? null} />
               ))}
             </div>
           </section>

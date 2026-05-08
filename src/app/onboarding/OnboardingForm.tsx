@@ -280,9 +280,17 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
                     : 'border-neutral-800 hover:border-neutral-600',
                 ].join(' ')}
               >
-                <span className="text-4xl">{role === 'photographer' ? '📷' : '🧍'}</span>
-                <span className="text-sm font-medium">
-                  {role === 'photographer' ? 'Fotografo' : 'Modella / Modello'}
+                <span className={[
+                  'text-3xl font-bold',
+                  role === 'photographer' ? 'text-sky-400' : 'text-rose-400',
+                ].join(' ')}>
+                  {role === 'photographer' ? 'F' : 'M'}
+                </span>
+                <span className={[
+                  'text-sm font-semibold',
+                  role === 'photographer' ? 'text-sky-300' : 'text-rose-300',
+                ].join(' ')}>
+                  {role === 'photographer' ? 'Fotografo' : 'Modell*'}
                 </span>
               </button>
             ))}

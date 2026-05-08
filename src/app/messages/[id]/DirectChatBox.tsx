@@ -110,8 +110,11 @@ export function DirectChatBox({ conversationId, currentUserId, currentUserRole, 
           const isMe = msg.sender_id === currentUserId
           return (
             <div key={msg.id} className={['flex gap-2', isMe ? 'flex-row-reverse' : 'flex-row'].join(' ')}>
-              <div className="w-7 h-7 rounded-full bg-neutral-800 flex items-center justify-center text-xs shrink-0">
-                {msg.sender.role === 'photographer' ? '📷' : '🧍'}
+              <div className={[
+                'w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0',
+                msg.sender.role === 'photographer' ? 'bg-sky-500/20 text-sky-400' : 'bg-rose-500/20 text-rose-400',
+              ].join(' ')}>
+                {msg.sender.role === 'photographer' ? 'F' : 'M'}
               </div>
               <div className={[
                 'max-w-[75%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed',

@@ -91,8 +91,11 @@ export function ChatBox({ projectId, currentUserId, initialMessages }: ChatBoxPr
               className={['flex gap-2', isMe ? 'flex-row-reverse' : 'flex-row'].join(' ')}
             >
               {/* Avatar */}
-              <div className="w-7 h-7 rounded-full bg-neutral-800 flex items-center justify-center text-xs shrink-0">
-                {msg.sender.role === 'photographer' ? '📷' : '🧍'}
+              <div className={[
+                'w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0',
+                msg.sender.role === 'photographer' ? 'bg-sky-500/20 text-sky-400' : 'bg-rose-500/20 text-rose-400',
+              ].join(' ')}>
+                {msg.sender.role === 'photographer' ? 'F' : 'M'}
               </div>
 
               {/* Bubble */}

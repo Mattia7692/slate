@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getLevelName } from '@/lib/xp'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
+import { RoleBadge } from '@/components/profile/RoleBadge'
 import type { ProfileStatus, Profile } from '@/types'
 
 const STATUS_FILTER_OPTIONS: { label: string; value: ProfileStatus | 'all' }[] = [
@@ -106,7 +107,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{profile.full_name}</p>
                 <p className="text-xs text-neutral-500 mt-0.5">
-                  {profile.role === 'photographer' ? 'Fotografo' : 'Modella / Modello'}
+                  <RoleBadge role={profile.role as 'photographer' | 'model'} />
                   {profile.city ? ` · ${profile.city}` : ''}
                   {' · '}
                   {getLevelName(profile.level)} ({profile.xp} XP)

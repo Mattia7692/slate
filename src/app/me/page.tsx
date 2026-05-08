@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { AppNav } from '@/components/layout/AppNav'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
+import { RoleBadge } from '@/components/profile/RoleBadge'
 import { getLevelProgress, getLevelName } from '@/lib/xp'
 import { isFounder } from '@/lib/founder'
 import type { Notification, Profile, ProjectStatus } from '@/types'
@@ -186,7 +187,7 @@ export default async function MePage() {
             <div className="flex-1 min-w-0 sm:mt-2">
               <p className="text-sm font-medium text-neutral-100 leading-tight">{profile.full_name}</p>
               <p className="text-xs text-neutral-500 mt-0.5">
-                {profile.role === 'photographer' ? 'Fotografo' : 'Modella / Modello'}
+                <RoleBadge role={(profile as Profile).role} />
                 {profile.city ? ` · ${profile.city}` : ''}
               </p>
             </div>

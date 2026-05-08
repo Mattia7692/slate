@@ -6,7 +6,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getLevelName, computeSeniorityBonus } from '@/lib/xp'
 import { isFounder } from '@/lib/founder'
 import { AdminActionsPanel } from './AdminActionsPanel'
-import type { Profile, ProfileStatus } from '@/types'
+import { RoleBadge } from '@/components/profile/RoleBadge'
+import type { Profile, ProfileStatus, UserRole } from '@/types'
 import type { PhotoExif } from '@/lib/exif'
 
 const STATUS_BADGE: Record<ProfileStatus, string> = {
@@ -79,7 +80,10 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
       <div className="flex items-start gap-6">
         {/* Sinistra: avatar + info */}
         <div className="flex items-start gap-4 flex-1 min-w-0">
-          <div className="w-14 h-14 rounded-full bg-neutral-800 overflow-hidden shrink-0 flex items-center justify-center text-2xl">
+          <div className={[
+            'w-14 h-14 rounded-full overflow-hidden shrink-0 flex items-center justify-center text-xl font-semibold',
+            (profile as unknown as Profile).avatar_url ? 'bg-neutral-800' : profile.role === 'photographer' ? 'bg-sky-500/20 text-sky-400' : 'bg-rose-500/20 text-rose-400',
+          ].join(' ')}>
             {(profile as unknown as Profile).avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -88,7 +92,7 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
                 className="w-full h-full object-cover"
               />
             ) : (
-              profile.role === 'photographer' ? '📷' : '🧍'
+              profile.role === 'photographer' ? 'F' : 'M'
             )}
           </div>
           <div className="min-w-0">
@@ -113,10 +117,10 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
                 </span>
               )}
             </div>
-            <p className="text-sm text-neutral-400 mt-1">
-              {profile.role === 'photographer' ? 'Fotografo' : 'Modella / Modello'}
-              {profile.city ? ` · ${profile.city}` : ''}
-            </p>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <RoleBadge role={profile.role as UserRole} />
+              {profile.city && <span className="text-sm text-neutral-500">{profile.city}</span>}
+            </div>
             {authUser?.user?.email && (
               <p className="text-xs text-neutral-600 mt-0.5">{authUser.user.email}</p>
             )}

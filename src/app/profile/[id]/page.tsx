@@ -6,6 +6,7 @@ import { XPBadge } from '@/components/profile/XPBadge'
 import { isFounder } from '@/lib/founder'
 import { PortfolioGrid } from '@/components/profile/PortfolioGrid'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
+import { RoleBadge } from '@/components/profile/RoleBadge'
 import { AppNav } from '@/components/layout/AppNav'
 import { ProposeModal } from './ProposeModal'
 import { MessageButton } from './MessageButton'
@@ -89,7 +90,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               <div>
                 <h1 className="text-xl font-semibold">{profile.full_name}</h1>
                 <p className="text-sm text-neutral-400 mt-0.5">
-                  {profile.role === 'photographer' ? 'Fotografo' : 'Modella / Modello'}
+                  <RoleBadge role={profile.role} />
                   {profile.city ? ` · ${profile.city}` : ''}
                 </p>
               </div>
@@ -194,9 +195,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                       >
                         {review.reviewer.full_name}
                       </Link>
-                      <span className="text-xs text-neutral-600 ml-2">
-                        {review.reviewer.role === 'photographer' ? 'Fotografo' : 'Modella / Modello'}
-                      </span>
+                      <RoleBadge role={review.reviewer.role as 'photographer' | 'model'} className="ml-2" />
                     </div>
                     <div className="flex items-center gap-2">
                       <StarRating rating={review.rating} />

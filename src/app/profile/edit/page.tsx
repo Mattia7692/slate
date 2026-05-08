@@ -8,6 +8,7 @@ import { getLevelProgress, getLevelName } from '@/lib/xp'
 import { isFounder } from '@/lib/founder'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
 import { AppNav } from '@/components/layout/AppNav'
+import { RoleBadge } from '@/components/profile/RoleBadge'
 import type { Profile, PortfolioItem, Notification } from '@/types'
 
 const LEVEL_BAR_COLOR: Record<number, string> = {
@@ -84,10 +85,10 @@ export default async function ProfileEditPage() {
               />
               <div className="flex-1 min-w-0 sm:mt-2">
                 <p className="text-sm font-medium text-neutral-100 leading-tight">{profile.full_name}</p>
-                <p className="text-xs text-neutral-500 mt-0.5">
-                  {profile.role === 'photographer' ? 'Fotografo' : 'Modella / Modello'}
-                  {profile.city ? ` · ${profile.city}` : ''}
-                </p>
+                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  <RoleBadge role={(profile as Profile).role} />
+                  {profile.city && <span className="text-xs text-neutral-500">{profile.city}</span>}
+                </div>
               </div>
               <span className="sm:hidden text-[11px] font-medium text-neutral-500 border border-neutral-700 px-2 py-0.5 rounded-full shrink-0">
                 Lv.{profile.level}

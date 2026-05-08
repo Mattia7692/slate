@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { AppNav } from '@/components/layout/AppNav'
+import { RoleBadge } from '@/components/profile/RoleBadge'
 import { ProfileCard } from '@/components/profile/ProfileCard'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
 import type { VisionWithCreator, Profile, Notification } from '@/types'
@@ -60,7 +61,7 @@ export default async function DashboardPage({
             <div>
               <p className="font-semibold">{profile.full_name}</p>
               <p className="text-sm text-neutral-500">
-                {profile.role === 'photographer' ? 'Fotografo' : 'Modella / Modello'}
+                <RoleBadge role={profile.role as 'photographer' | 'model'} />
                 {profile.city ? ` · ${profile.city}` : ''}
               </p>
             </div>

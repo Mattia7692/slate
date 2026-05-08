@@ -117,8 +117,11 @@ function ProjectRow({ project: p, userId }: { project: ProjectRow; userId: strin
       href={`/projects/${p.id}`}
       className="flex items-center gap-4 rounded-xl border border-neutral-800 bg-neutral-900/50 px-5 py-4 hover:border-neutral-700 hover:bg-neutral-900 transition-colors"
     >
-      <div className="text-xl shrink-0">
-        {other.role === 'photographer' ? '📷' : '🧍'}
+      <div className={[
+        'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
+        other.role === 'photographer' ? 'bg-sky-500/20 text-sky-400' : 'bg-rose-500/20 text-rose-400',
+      ].join(' ')}>
+        {other.role === 'photographer' ? 'F' : 'M'}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{other.full_name}</p>

@@ -1,8 +1,13 @@
 import type { UserRole } from '@/types'
 
-const ROLE_BADGE: Record<UserRole, string> = {
-  photographer: '📷',
-  model: '🧍',
+const ROLE_COLOR: Record<UserRole, string> = {
+  photographer: 'bg-sky-500/20 text-sky-400',
+  model:        'bg-rose-500/20 text-rose-400',
+}
+
+const ROLE_DOT: Record<UserRole, string> = {
+  photographer: 'bg-sky-500',
+  model:        'bg-rose-500',
 }
 
 interface ProfileAvatarProps {
@@ -14,32 +19,29 @@ interface ProfileAvatarProps {
 export function ProfileAvatar({ avatarUrl, role, size = 64 }: ProfileAvatarProps) {
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
-      {/* Avatar */}
       <div
-        className="relative w-full h-full rounded-2xl bg-neutral-800 overflow-hidden flex items-center justify-center"
-        style={{ fontSize: size * 0.45 }}
+        className={[
+          'relative w-full h-full rounded-2xl overflow-hidden flex items-center justify-center font-semibold',
+          avatarUrl ? 'bg-neutral-800' : ROLE_COLOR[role],
+        ].join(' ')}
+        style={{ fontSize: size * 0.38 }}
       >
         {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={avatarUrl}
-            alt="Avatar"
-            className="absolute inset-0 w-full h-full object-cover"
-          />
+          <img src={avatarUrl} alt="Avatar" className="absolute inset-0 w-full h-full object-cover" />
         ) : (
-          <span>{ROLE_BADGE[role]}</span>
+          <span>{role === 'photographer' ? 'F' : 'M'}</span>
         )}
       </div>
 
-      {/* Badge ruolo */}
-      {avatarUrl && (
-        <span
-          className="absolute bottom-0 left-0 -translate-x-1/2 translate-y-1/2 flex items-center justify-center rounded-full bg-neutral-900 border border-neutral-700"
-          style={{ width: size * 0.42, height: size * 0.42, fontSize: size * 0.24 }}
-        >
-          {ROLE_BADGE[role]}
-        </span>
-      )}
+      {/* Dot ruolo */}
+      <span
+        className={[
+          'absolute bottom-0 right-0 translate-x-0.5 translate-y-0.5 rounded-full border-2 border-neutral-950',
+          ROLE_DOT[role],
+        ].join(' ')}
+        style={{ width: size * 0.28, height: size * 0.28 }}
+      />
     </div>
   )
 }

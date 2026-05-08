@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
+import { RoleBadge } from '@/components/profile/RoleBadge'
 import { AppNav } from '@/components/layout/AppNav'
 import type { ConversationWithProfiles, Profile, Notification } from '@/types'
 
@@ -62,7 +63,7 @@ export default async function MessagesPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{other.full_name}</p>
                     <p className="text-xs text-neutral-500 mt-0.5">
-                      {other.role === 'photographer' ? 'Fotografo' : 'Modella / Modello'}
+                      <RoleBadge role={other.role as 'photographer' | 'model'} />
                     </p>
                   </div>
                   <span className="text-neutral-600 shrink-0">›</span>

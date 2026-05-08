@@ -173,7 +173,9 @@ function ParticipantChip({
       href={`/profile/${profile.id}`}
       className="flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1.5 hover:border-neutral-600 transition-colors"
     >
-      <span className="text-sm">{label === 'Fotografo' ? '📷' : '🧍'}</span>
+      <span className={['text-xs font-semibold', label === 'Fotografo' ? 'text-sky-400' : 'text-rose-400'].join(' ')}>
+        {label === 'Fotografo' ? 'F' : 'M'}
+      </span>
       <span className="text-sm font-medium">{profile.full_name}</span>
       {isMe && <span className="text-xs text-neutral-600">(tu)</span>}
       <span className="text-xs text-neutral-600">Lv.{profile.level}</span>

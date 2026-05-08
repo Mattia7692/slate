@@ -126,11 +126,15 @@ export function NotificationBell({ initialNotifications, currentUserId }: Notifi
         className="relative flex items-center justify-center w-8 h-8 rounded-lg text-neutral-400 hover:text-neutral-100 hover:bg-neutral-800 transition-colors"
         aria-label="Notifiche"
       >
-        <span className="text-base leading-none">🔔</span>
+        {/* Icona notifiche geometrica */}
+        <svg width="16" height="17" viewBox="0 0 16 17" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="8" y1="1" x2="8" y2="2.5" />
+          <path d="M3.5 13V7.5C3.5 5.015 5.515 3 8 3s4.5 2.015 4.5 4.5V13" />
+          <line x1="1.5" y1="13" x2="14.5" y2="13" />
+          <path d="M6.5 13.2a1.5 1.5 0 0 0 3 0" />
+        </svg>
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-[10px] font-bold text-white flex items-center justify-center leading-none">
-            {unread > 9 ? '9+' : unread}
-          </span>
+          <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-rose-500" />
         )}
       </button>
 

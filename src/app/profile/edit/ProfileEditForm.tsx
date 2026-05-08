@@ -7,14 +7,18 @@ import { updateProfile, deletePortfolioItem, addPortfolioItem } from './actions'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { ProfileAvatarUpload } from '@/components/profile/ProfileAvatarUpload'
+import { OldestPhotoSection } from './OldestPhotoSection'
 import type { Profile, PortfolioItem } from '@/types'
+import type { PhotoExif } from '@/lib/exif'
 
 interface Props {
   profile: Profile
   portfolioItems: PortfolioItem[]
+  oldestPhotoSignedUrl: string | null
+  oldestPhotoExif: PhotoExif | null
 }
 
-export function ProfileEditForm({ profile, portfolioItems: initialItems }: Props) {
+export function ProfileEditForm({ profile, portfolioItems: initialItems, oldestPhotoSignedUrl, oldestPhotoExif }: Props) {
   const [portfolioItems, setPortfolioItems] = useState(initialItems)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(profile.avatar_url ?? null)
   const [uploading, setUploading] = useState(false)
@@ -144,6 +148,14 @@ export function ProfileEditForm({ profile, portfolioItems: initialItems }: Props
           placeholder="@username"
         />
       </section>
+
+      {/* Prima foto professionale */}
+      <OldestPhotoSection
+        profileId={profile.id}
+        initialSignedUrl={oldestPhotoSignedUrl}
+        initialDate={profile.oldest_photo_date ?? null}
+        initialExif={oldestPhotoExif}
+      />
 
       {/* Portfolio */}
       <section className="space-y-4">

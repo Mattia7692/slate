@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ProfileEditForm } from './ProfileEditForm'
-import { OldestPhotoSection } from './OldestPhotoSection'
 import type { PhotoExif } from '@/lib/exif'
 import { getLevelProgress, getLevelName } from '@/lib/xp'
 import { isFounder } from '@/lib/founder'
@@ -155,17 +154,12 @@ export default async function ProfileEditPage() {
           </aside>
 
           {/* ── MAIN ── */}
-          <main className="flex-1 px-4 sm:px-6 py-5 min-w-0 space-y-8">
+          <main className="flex-1 px-4 sm:px-6 py-5 min-w-0">
             <ProfileEditForm
               profile={profile as Profile}
               portfolioItems={(portfolioItems ?? []) as PortfolioItem[]}
-            />
-
-            <OldestPhotoSection
-              profileId={user.id}
-              initialSignedUrl={oldestPhotoSignedUrl}
-              initialDate={(profile as Profile).oldest_photo_date ?? null}
-              initialExif={((profile as Profile).oldest_photo_exif as PhotoExif | null) ?? null}
+              oldestPhotoSignedUrl={oldestPhotoSignedUrl}
+              oldestPhotoExif={((profile as Profile).oldest_photo_exif as PhotoExif | null) ?? null}
             />
           </main>
 

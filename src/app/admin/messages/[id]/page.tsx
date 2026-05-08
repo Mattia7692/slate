@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
+import { DeleteConversationButton } from '../DeleteConversationButton'
 import type { ConversationWithProfiles, DirectMessageWithSender, Profile } from '@/types'
 
 interface Props {
@@ -43,13 +44,14 @@ export default async function AdminConversationPage({ params }: Props) {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between">
         <Link
           href="/admin/messages"
           className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors"
         >
           ← Monitoraggio chat
         </Link>
+        <DeleteConversationButton conversationId={id} redirectAfter="/admin/messages" />
       </div>
 
       {/* Header conversazione */}

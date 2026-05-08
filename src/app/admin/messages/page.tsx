@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
+import { DeleteConversationButton } from './DeleteConversationButton'
 import type { ConversationWithProfiles, Profile } from '@/types'
 
 export default async function AdminMessagesPage() {
@@ -48,32 +49,32 @@ export default async function AdminMessagesPage() {
             const msgCount = countMap.get(conv.id) ?? 0
 
             return (
-              <Link
-                key={conv.id}
-                href={`/admin/messages/${conv.id}`}
-                className="flex items-center gap-4 rounded-xl border border-neutral-800 bg-neutral-900/50 px-5 py-4 hover:border-neutral-700 hover:bg-neutral-900 transition-colors"
-              >
-                {/* Partecipanti */}
-                <div className="flex items-center gap-2">
-                  <ProfileAvatar avatarUrl={(p1 as unknown as Profile).avatar_url ?? null} role={p1.role} size={32} />
-                  <span className="text-neutral-600 text-xs">↔</span>
-                  <ProfileAvatar avatarUrl={(p2 as unknown as Profile).avatar_url ?? null} role={p2.role} size={32} />
-                </div>
+              <div key={conv.id} className="flex items-center gap-4 rounded-xl border border-neutral-800 bg-neutral-900/50 px-5 py-4 hover:border-neutral-700 hover:bg-neutral-900 transition-colors">
+                <Link href={`/admin/messages/${conv.id}`} className="flex items-center gap-4 flex-1 min-w-0">
+                  {/* Partecipanti */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <ProfileAvatar avatarUrl={(p1 as unknown as Profile).avatar_url ?? null} role={p1.role} size={32} />
+                    <span className="text-neutral-600 text-xs">↔</span>
+                    <ProfileAvatar avatarUrl={(p2 as unknown as Profile).avatar_url ?? null} role={p2.role} size={32} />
+                  </div>
 
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">
-                    {p1.full_name} · {p2.full_name}
-                  </p>
-                  <p className="text-xs text-neutral-500 mt-0.5">
-                    {new Date(conv.created_at).toLocaleDateString('it-IT')}
-                  </p>
-                </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {p1.full_name} · {p2.full_name}
+                    </p>
+                    <p className="text-xs text-neutral-500 mt-0.5">
+                      {new Date(conv.created_at).toLocaleDateString('it-IT')}
+                    </p>
+                  </div>
 
-                <span className="text-xs text-neutral-500 shrink-0">
-                  {msgCount} {msgCount === 1 ? 'messaggio' : 'messaggi'}
-                </span>
-                <span className="text-neutral-600 shrink-0">›</span>
-              </Link>
+                  <span className="text-xs text-neutral-500 shrink-0">
+                    {msgCount} {msgCount === 1 ? 'messaggio' : 'messaggi'}
+                  </span>
+                  <span className="text-neutral-600 shrink-0">›</span>
+                </Link>
+
+                <DeleteConversationButton conversationId={conv.id} />
+              </div>
             )
           })}
         </div>

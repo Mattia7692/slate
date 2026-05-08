@@ -1,13 +1,20 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
-import type { ConversationWithProfiles, Profile } from '@/types'
+import { AppNav } from '@/components/layout/AppNav'
+import type { ConversationWithProfiles, Profile, Notification } from '@/types'
 
 export default async function MessagesPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
+
+  const { data: myProfile } = await supabase.from('profiles').select('full_name, avatar_url').eq('id', user.id).single()
+  const adminClient = createAdminClient()
+  const { data: rawNotifications } = await adminClient.from('notifications').select('*').eq('profile_id', user.id).order('created_at', { ascending: false }).limit(30)
+  const notifications = (rawNotifications ?? []) as Notification[]
+  const userInitials = (myProfile?.full_name ?? '').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
 
   const { data: raw } = await supabase
     .from('conversations')
@@ -23,12 +30,7 @@ export default async function MessagesPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-neutral-800 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-sm font-semibold">Messaggi</h1>
-        <Link href="/dashboard" className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors">
-          ← Dashboard
-        </Link>
-      </header>
+      <AppNav userInitials={userInitials} userId={user.id} avatarUrl={myProfile?.avatar_url ?? null} notifications={notifications} />
 
       <div className="max-w-2xl mx-auto px-6 py-8">
         {conversations.length === 0 ? (

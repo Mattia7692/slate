@@ -1,13 +1,15 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { XPBadge } from '@/components/profile/XPBadge'
 import { isFounder } from '@/lib/founder'
 import { PortfolioGrid } from '@/components/profile/PortfolioGrid'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
+import { AppNav } from '@/components/layout/AppNav'
 import { ProposeModal } from './ProposeModal'
 import { MessageButton } from './MessageButton'
-import type { ReviewWithReviewer } from '@/types'
+import type { ReviewWithReviewer, Notification } from '@/types'
 
 interface ProfilePageProps {
   params: Promise<{ id: string }>
@@ -42,12 +44,17 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   const isOwnProfile = user.id === id
 
-  // Profilo dell'utente corrente (per calcolo compenso)
+  // Profilo dell'utente corrente (per calcolo compenso + nav)
   const { data: myProfile } = await supabase
     .from('profiles')
-    .select('id, role, level')
+    .select('id, role, level, full_name, avatar_url')
     .eq('id', user.id)
     .single()
+
+  const adminClient = createAdminClient()
+  const { data: rawNotifications } = await adminClient.from('notifications').select('*').eq('profile_id', user.id).order('created_at', { ascending: false }).limit(30)
+  const notifications = (rawNotifications ?? []) as Notification[]
+  const userInitials = (myProfile?.full_name ?? '').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
 
   // Portfolio, recensioni in parallelo
   const [{ data: portfolioItems }, { data: reviews }] = await Promise.all([
@@ -70,15 +77,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   return (
     <div className="min-h-screen">
-      {/* Topbar */}
-      <header className="border-b border-neutral-800 px-6 py-4 flex items-center gap-4">
-        <Link
-          href="/explore"
-          className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors"
-        >
-          ← Esplora
-        </Link>
-      </header>
+      <AppNav userInitials={userInitials} userId={user.id} avatarUrl={myProfile?.avatar_url ?? null} notifications={notifications} />
 
       <div className="max-w-3xl mx-auto px-6 py-10 space-y-10">
         {/* Hero */}

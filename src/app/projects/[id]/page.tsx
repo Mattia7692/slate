@@ -1,12 +1,14 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { AppNav } from '@/components/layout/AppNav'
 import { ProjectStatusBar } from './ProjectStatus'
 import { BriefForm } from './BriefForm'
 import { ChatBox } from './ChatBox'
 import { ReviewForm } from './ReviewForm'
 import { ProjectActions } from './ProjectActions'
-import type { MessageWithSender } from '@/types'
+import type { MessageWithSender, Notification } from '@/types'
 
 interface ProjectPageProps {
   params: Promise<{ id: string }>
@@ -38,6 +40,11 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   const me = isPhotographer ? project.photographer : project.model
   const other = isPhotographer ? project.model : project.photographer
+
+  const adminClient = createAdminClient()
+  const { data: rawNotifications } = await adminClient.from('notifications').select('*').eq('profile_id', user.id).order('created_at', { ascending: false }).limit(30)
+  const notifications = (rawNotifications ?? []) as Notification[]
+  const userInitials = (me.full_name as string).split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
 
   // Brief, messaggi, recensioni in parallelo
   const [{ data: brief }, { data: rawMessages }, { data: myReview }] = await Promise.all([
@@ -73,16 +80,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   return (
     <div className="min-h-screen">
-      {/* Topbar */}
-      <header className="border-b border-neutral-800 px-6 py-4 flex items-center justify-between">
-        <Link
-          href="/dashboard"
-          className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors"
-        >
-          ← Dashboard
-        </Link>
-        <span className="text-xs text-neutral-600">Progetto</span>
-      </header>
+      <AppNav userInitials={userInitials} userId={user.id} avatarUrl={me.avatar_url ?? null} notifications={notifications} />
 
       <div className="max-w-3xl mx-auto px-6 py-8 space-y-10">
         {/* Header partecipanti */}

@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
+import { AppNav } from '@/components/layout/AppNav'
 import { DirectChatBox } from './DirectChatBox'
-import type { ConversationWithProfiles, DirectMessageWithSender, Profile } from '@/types'
+import type { ConversationWithProfiles, DirectMessageWithSender, Profile, Notification } from '@/types'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -16,9 +18,14 @@ export default async function ConversationPage({ params }: Props) {
 
   const { data: currentProfile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, full_name, avatar_url')
     .eq('id', user.id)
     .single()
+
+  const adminClient = createAdminClient()
+  const { data: rawNotifications } = await adminClient.from('notifications').select('*').eq('profile_id', user.id).order('created_at', { ascending: false }).limit(30)
+  const notifications = (rawNotifications ?? []) as Notification[]
+  const userInitials = (currentProfile?.full_name ?? '').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
 
   const { id } = await params
 
@@ -50,8 +57,9 @@ export default async function ConversationPage({ params }: Props) {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="border-b border-neutral-800 px-6 py-4 flex items-center gap-4 shrink-0">
+      <AppNav userInitials={userInitials} userId={user.id} avatarUrl={currentProfile?.avatar_url ?? null} notifications={notifications} />
+      {/* Chat header */}
+      <header className="border-b border-neutral-800 px-6 py-3 flex items-center gap-3 shrink-0">
         <Link href="/messages" className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors">
           ←
         </Link>

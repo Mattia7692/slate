@@ -1,9 +1,10 @@
-import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { AppNav } from '@/components/layout/AppNav'
 import { PartecipaModal } from './PartecipaModal'
 import { CloseVisionButton } from './CloseVisionButton'
-import type { VisionWithCreator } from '@/types'
+import type { VisionWithCreator, Notification } from '@/types'
 
 const ROLE_LABEL = { photographer: 'Fotografo', model: 'Modella / Modello' }
 const ROLE_STYLE = {
@@ -17,7 +18,8 @@ export default async function VisionDetailPage({ params }: { params: Promise<{ i
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
 
-  const [{ data: rawVision }, { data: myProfile }] = await Promise.all([
+  const adminClient = createAdminClient()
+  const [{ data: rawVision }, { data: myProfile }, { data: rawNotifications }] = await Promise.all([
     supabase
       .from('visions')
       .select(`
@@ -29,10 +31,14 @@ export default async function VisionDetailPage({ params }: { params: Promise<{ i
       .single(),
     supabase
       .from('profiles')
-      .select('id, role, level, status')
+      .select('id, role, level, status, full_name, avatar_url')
       .eq('id', user.id)
       .single(),
+    adminClient.from('notifications').select('*').eq('profile_id', user.id).order('created_at', { ascending: false }).limit(30),
   ])
+
+  const notifications = (rawNotifications ?? []) as Notification[]
+  const userInitials = (myProfile?.full_name ?? '').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
 
   if (!rawVision) notFound()
   const vision = rawVision as unknown as VisionWithCreator
@@ -47,16 +53,7 @@ export default async function VisionDetailPage({ params }: { params: Promise<{ i
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-neutral-800 px-6 py-4 flex items-center gap-4">
-        <Link href="/bacheca" className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors">
-          ← Bacheca
-        </Link>
-        {vision.status === 'closed' && (
-          <span className="text-xs bg-neutral-800 text-neutral-500 px-2 py-0.5 rounded-full">
-            Chiusa
-          </span>
-        )}
-      </header>
+      <AppNav userInitials={userInitials} userId={user.id} avatarUrl={myProfile?.avatar_url ?? null} notifications={notifications} />
 
       <div className="max-w-3xl mx-auto px-6 py-10 space-y-8">
 

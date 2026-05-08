@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import type { ProjectStatus } from '@/types'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { AppNav } from '@/components/layout/AppNav'
+import type { ProjectStatus, Notification } from '@/types'
 
 const STATUS_LABEL: Record<ProjectStatus, string> = {
   proposed: 'Proposta',
@@ -39,6 +41,12 @@ export default async function ProjectsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
 
+  const { data: myProfile } = await supabase.from('profiles').select('full_name, avatar_url').eq('id', user.id).single()
+  const adminClient = createAdminClient()
+  const { data: rawNotifications } = await adminClient.from('notifications').select('*').eq('profile_id', user.id).order('created_at', { ascending: false }).limit(30)
+  const notifications = (rawNotifications ?? []) as Notification[]
+  const userInitials = (myProfile?.full_name ?? '').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+
   const { data: rawProjects } = await supabase
     .from('projects')
     .select(`
@@ -56,12 +64,7 @@ export default async function ProjectsPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-neutral-800 px-6 py-4 flex items-center justify-between">
-        <Link href="/dashboard" className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors">
-          ← Dashboard
-        </Link>
-        <span className="text-xs text-neutral-600">I miei progetti</span>
-      </header>
+      <AppNav userInitials={userInitials} userId={user.id} avatarUrl={myProfile?.avatar_url ?? null} notifications={notifications} />
 
       <div className="max-w-3xl mx-auto px-6 py-8 space-y-10">
         {/* Attivi */}

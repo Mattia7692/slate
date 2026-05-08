@@ -134,7 +134,9 @@ export function NotificationBell({ initialNotifications, currentUserId }: Notifi
           <path d="M6.5 13.2a1.5 1.5 0 0 0 3 0" />
         </svg>
         {unread > 0 && (
-          <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-rose-500" />
+          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-[10px] font-bold text-white flex items-center justify-center leading-none">
+            {unread > 9 ? '9+' : unread}
+          </span>
         )}
       </button>
 

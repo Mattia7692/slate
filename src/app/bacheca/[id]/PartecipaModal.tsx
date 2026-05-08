@@ -41,7 +41,13 @@ export function PartecipaModal({
   function handleSend() {
     setError(null)
     startTransition(async () => {
-      const result = await sendInvite(creatorId, message || null)
+      const result = await sendInvite(creatorId, {
+        message: message.trim() || null,
+        creative_idea: '',
+        location: '',
+        alternative_amount: null,
+        moodboard_urls: [],
+      })
       if (result.error) {
         setError(result.error)
         return

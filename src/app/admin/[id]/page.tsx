@@ -5,9 +5,7 @@ import { requireAdmin } from '@/lib/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getLevelName, computeSeniorityBonus } from '@/lib/xp'
 import { isFounder } from '@/lib/founder'
-import { AdminProfileActions } from './AdminProfileActions'
-import { ToggleAdminButton } from './ToggleAdminButton'
-import { DeleteProfileButton } from './DeleteProfileButton'
+import { AdminActionsPanel } from './AdminActionsPanel'
 import type { Profile, ProfileStatus } from '@/types'
 import type { PhotoExif } from '@/lib/exif'
 
@@ -112,50 +110,31 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
           )}
         </div>
 
-        {/* Azioni */}
-        <div className="flex flex-col items-end gap-2 shrink-0">
-          {/* Badge Founder */}
+        {/* Badge Founder / Admin */}
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
           {isFounder(id) && (
             <span className="rounded-full border border-amber-400/40 bg-gradient-to-r from-amber-500/20 to-rose-500/20 px-2.5 py-1 text-xs font-semibold text-amber-300">
               ✦ Founder
             </span>
           )}
-          {/* Badge Admin */}
           {!isFounder(id) && profile.is_admin && (
             <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-400">
               Admin
             </span>
           )}
-          {/* Controlli stato + promuovi admin — stessa riga */}
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            <AdminProfileActions
-              profileId={id}
-              currentStatus={profile.status as ProfileStatus}
-              isSelf={currentUser?.id === id}
-            />
-            {currentIsFounder && !isFounder(id) && (
-              <ToggleAdminButton
-                profileId={id}
-                isAdmin={!!profile.is_admin}
-                profileName={profile.full_name}
-              />
-            )}
-          </div>
-          {/* Modifica profilo */}
-          {(!isFounder(id) || currentIsFounder) && (
-            <Link
-              href={`/admin/${id}/edit`}
-              className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
-            >
-              Modifica profilo →
-            </Link>
-          )}
-          {/* Elimina profilo — solo su profili non-Founder, non se stessi */}
-          {!isFounder(id) && currentUser?.id !== id && (
-            <DeleteProfileButton profileId={id} profileName={profile.full_name} />
-          )}
         </div>
       </div>
+
+      {/* Pannello azioni */}
+      <AdminActionsPanel
+        profileId={id}
+        currentStatus={profile.status as ProfileStatus}
+        isAdmin={!!profile.is_admin}
+        isSelf={currentUser?.id === id}
+        isFounderProfile={isFounder(id)}
+        currentIsFounder={currentIsFounder}
+        profileName={profile.full_name}
+      />
 
       {/* Sezione info */}
       <div className="grid grid-cols-2 gap-4">

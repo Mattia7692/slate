@@ -50,8 +50,8 @@ export default async function AdminProposalsPage() {
       ) : (
         <div className="space-y-3">
           {invites.map((invite) => {
-            const from = invite.from_profile as { id: string; full_name: string; role: string; level: number } | null
-            const to = invite.to_profile as { id: string; full_name: string; role: string; level: number } | null
+            const from = invite.from_profile as unknown as { id: string; full_name: string; role: string; level: number } | null
+            const to = invite.to_profile as unknown as { id: string; full_name: string; role: string; level: number } | null
             const amountEur = invite.proposed_amount ? invite.proposed_amount / 100 : 0
 
             return (

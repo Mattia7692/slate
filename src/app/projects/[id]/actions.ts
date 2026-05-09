@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { XP_VALUES } from '@/lib/xp'
 import type { BriefFormData } from '@/types'
 
@@ -23,20 +24,15 @@ async function getProjectAndUser(projectId: string) {
   const isModel = user.id === project.model_id
   if (!isPhotographer && !isModel) redirect('/dashboard')
 
-  return { supabase, user, project, isPhotographer, isModel }
+  const isProposer = project.proposer_id ? user.id === project.proposer_id : isPhotographer
+
+  return { supabase, user, project, isPhotographer, isModel, isProposer }
 }
 
-// ── Accetta proposta ───────────────────────────────────────────
+// ── Accetta proposta (vecchio flusso direct) ───────────────────
 
 export async function acceptProject(projectId: string) {
-  const { supabase, project, isPhotographer, isModel } = await getProjectAndUser(projectId)
-
-  if (project.status !== 'proposed') return { error: 'Progetto non in stato proposta.' }
-
-  // Solo chi ha ricevuto la proposta può accettare
-  // La proposta è sempre fatta dall'utente che l'ha creata (photographer_id o model_id)
-  // Per semplicità accettiamo che uno dei due possa accettare
-  if (!isPhotographer && !isModel) return { error: 'Non autorizzato.' }
+  const { supabase } = await getProjectAndUser(projectId)
 
   const { error } = await supabase
     .from('projects')
@@ -48,7 +44,7 @@ export async function acceptProject(projectId: string) {
   return { error: null }
 }
 
-// ── Rifiuta / cancella proposta ────────────────────────────────
+// ── Cancella progetto ──────────────────────────────────────────
 
 export async function cancelProject(projectId: string) {
   const { supabase, project } = await getProjectAndUser(projectId)
@@ -67,14 +63,19 @@ export async function cancelProject(projectId: string) {
   return { error: null }
 }
 
-// ── Salva / aggiorna brief ─────────────────────────────────────
+// ── Salva brief (solo proponente) ──────────────────────────────
 
 export async function saveBrief(projectId: string, data: BriefFormData) {
-  const { supabase, project } = await getProjectAndUser(projectId)
+  const { supabase, project, isPhotographer, isProposer } = await getProjectAndUser(projectId)
 
-  if (!['accepted'].includes(project.status)) {
-    return { error: 'Il brief può essere modificato solo quando il progetto è accettato.' }
+  if (!isProposer) return { error: 'Solo il proponente può compilare il brief.' }
+  if (project.status !== 'accepted') {
+    return { error: 'Il brief può essere modificato solo durante la fase di consolidamento.' }
   }
+
+  const now = new Date().toISOString()
+  const proposerSignField = isPhotographer ? 'signed_by_photographer_at' : 'signed_by_model_at'
+  const receiverSignField = isPhotographer ? 'signed_by_model_at' : 'signed_by_photographer_at'
 
   const { error } = await supabase
     .from('briefs')
@@ -82,49 +83,66 @@ export async function saveBrief(projectId: string, data: BriefFormData) {
       {
         project_id: projectId,
         ...data,
-        // Reset firme quando il brief viene aggiornato
-        signed_by_photographer_at: null,
-        signed_by_model_at: null,
+        [proposerSignField]: now,
+        [receiverSignField]: null,
       },
       { onConflict: 'project_id' }
     )
 
   if (error) return { error: error.message }
+
+  // Notifica al ricevente
+  const receiverId = project.proposer_id === project.photographer_id
+    ? project.model_id
+    : project.photographer_id
+
+  const adminClient = createAdminClient()
+  await adminClient.from('notifications').insert({
+    user_id: receiverId,
+    type: 'project_update',
+    title: 'Brief pronto per la tua approvazione',
+    body: "Dai un'occhiata al brief e approvalo per aprire la chat.",
+    data: { project_id: projectId },
+  })
+
   revalidatePath(`/projects/${projectId}`)
   return { error: null }
 }
 
-// ── Firma brief ────────────────────────────────────────────────
+// ── Approva brief (solo ricevente) ─────────────────────────────
 
-export async function signBrief(projectId: string) {
-  const { supabase, user, project, isPhotographer } = await getProjectAndUser(projectId)
+export async function approveBrief(projectId: string) {
+  const { supabase, project, isPhotographer, isProposer } = await getProjectAndUser(projectId)
 
-  if (project.status !== 'accepted') return { error: 'Progetto non in stato accettato.' }
+  if (isProposer) return { error: 'Il proponente non può approvare il proprio brief.' }
+  if (project.status !== 'accepted') return { error: 'Nessun brief da approvare.' }
 
   const { data: brief } = await supabase
     .from('briefs')
-    .select('*')
+    .select('id')
     .eq('project_id', projectId)
-    .single()
+    .maybeSingle()
 
-  if (!brief) return { error: 'Compila prima il brief.' }
+  if (!brief) return { error: 'Il proponente non ha ancora inviato il brief.' }
 
   const now = new Date().toISOString()
-  const field = isPhotographer ? 'signed_by_photographer_at' : 'signed_by_model_at'
-  const otherField = isPhotographer ? 'signed_by_model_at' : 'signed_by_photographer_at'
+  const receiverSignField = isPhotographer ? 'signed_by_photographer_at' : 'signed_by_model_at'
 
-  await supabase
-    .from('briefs')
-    .update({ [field]: now })
-    .eq('project_id', projectId)
+  await Promise.all([
+    supabase.from('briefs').update({ [receiverSignField]: now }).eq('project_id', projectId),
+    supabase.from('projects').update({ status: 'brief_signed' }).eq('id', projectId),
+  ])
 
-  // Se anche l'altro ha già firmato → brief_signed
-  if (brief[otherField]) {
-    const nextStatus = project.payer_role === 'tfp' ? 'brief_signed' : 'brief_signed'
-    await supabase
-      .from('projects')
-      .update({ status: nextStatus })
-      .eq('id', projectId)
+  // Notifica al proponente
+  if (project.proposer_id) {
+    const adminClient = createAdminClient()
+    await adminClient.from('notifications').insert({
+      user_id: project.proposer_id,
+      type: 'project_update',
+      title: 'Brief approvato!',
+      body: 'La tua controparte ha approvato il brief. La chat è ora aperta.',
+      data: { project_id: projectId },
+    })
   }
 
   revalidatePath(`/projects/${projectId}`)
@@ -134,28 +152,12 @@ export async function signBrief(projectId: string) {
 // ── Conferma completamento ─────────────────────────────────────
 
 export async function confirmCompletion(projectId: string) {
-  const { supabase, user, project, isPhotographer } = await getProjectAndUser(projectId)
+  const { supabase, project, isPhotographer } = await getProjectAndUser(projectId)
 
-  const allowedStatuses = project.payer_role === 'tfp'
-    ? ['brief_signed']
-    : ['paid']
-
+  const allowedStatuses = project.payer_role === 'tfp' ? ['brief_signed'] : ['paid']
   if (!allowedStatuses.includes(project.status)) {
     return { error: 'Non puoi confermare il completamento in questo stato.' }
   }
-
-  // Usiamo i metadati del progetto per tracciare chi ha confermato
-  // Soluzione semplice: colonne dedicate (aggiungiamo con upsert su un campo json)
-  // Per v1 usiamo un approccio basato sui messaggi di sistema
-  const confirmField = isPhotographer
-    ? 'confirmed_by_photographer'
-    : 'confirmed_by_model'
-
-  // Leggi stato attuale delle conferme dalla tabella (campo JSON nella tabella projects)
-  // Poiché non abbiamo questi campi nello schema, usiamo una colonna metadata
-  // Approcio semplificato: contiamo i messaggi di conferma
-  // Per v1: un solo utente che conferma → completed (semplificato)
-  // In produzione servirebbe un campo confirmed_by_photographer / confirmed_by_model
 
   const { error } = await supabase
     .from('projects')
@@ -164,7 +166,6 @@ export async function confirmCompletion(projectId: string) {
 
   if (error) return { error: error.message }
 
-  // Assegna XP a entrambi tramite apply_xp (security definer, gestisce XP + log atomicamente)
   const photographerId = project.photographer_id
   const modelId = project.model_id
   const photographerLevel = (project.photographer as { level: number }).level
@@ -175,7 +176,6 @@ export async function confirmCompletion(projectId: string) {
     supabase.rpc('apply_xp', { p_profile_id: modelId, p_delta: XP_VALUES.SHOOT_COMPLETED, p_reason: 'shoot_completed', p_project_id: projectId }),
   ])
 
-  // Bonus collaborazione con Master
   if (photographerLevel === 5 && modelLevel < 5) {
     await supabase.rpc('apply_xp', { p_profile_id: modelId, p_delta: XP_VALUES.MASTER_COLLABORATION, p_reason: 'master_collaboration', p_project_id: projectId })
   }
@@ -209,7 +209,6 @@ export async function submitReview(
 
   if (error) return { error: error.message }
 
-  // XP per chi ha ricevuto la recensione
   const xpDelta = rating === 5 ? XP_VALUES.REVIEW_5_STARS : rating === 4 ? XP_VALUES.REVIEW_4_STARS : 0
   if (xpDelta > 0) {
     const reason: 'review_5_stars' | 'review_4_stars' = rating === 5 ? 'review_5_stars' : 'review_4_stars'

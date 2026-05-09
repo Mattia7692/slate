@@ -132,6 +132,9 @@ export async function acceptInvite(inviteId: string) {
     .insert({
       photographer_id: photographerId,
       model_id: modelId,
+      proposer_id: invite.from_profile_id,
+      compensation_note: invite.compensation_note ?? null,
+      invite_id: inviteId,
       status: 'accepted',
       payer_role: payerRole,
       amount: invite.proposed_amount,

@@ -21,6 +21,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   if (!user) redirect('/auth/login')
 
   const { id } = await params
+  const adminClient = createAdminClient()
 
   const { data: project } = await supabase
     .from('projects')
@@ -38,15 +39,33 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   const isModel = user.id === project.model_id
   if (!isPhotographer && !isModel) redirect('/dashboard')
 
+  const isProposer = project.proposer_id ? user.id === project.proposer_id : isPhotographer
+
   const me = isPhotographer ? project.photographer : project.model
   const other = isPhotographer ? project.model : project.photographer
 
-  const adminClient = createAdminClient()
-  const { data: rawNotifications } = await adminClient.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(30)
+  const { data: rawNotifications } = await adminClient
+    .from('notifications')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(30)
   const notifications = (rawNotifications ?? []) as Notification[]
   const userInitials = (me.full_name as string).split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
 
-  // Brief, messaggi, recensioni in parallelo
+  // Fetch dati invite per pre-popolare il brief
+  let inviteInitialData: { location: string | null; moodboard_urls: string[] } | null = null
+  if (project.invite_id) {
+    const { data: inviteRaw } = await adminClient
+      .from('project_invites')
+      .select('location, moodboard_urls')
+      .eq('id', project.invite_id)
+      .maybeSingle()
+    if (inviteRaw) {
+      inviteInitialData = inviteRaw as { location: string | null; moodboard_urls: string[] }
+    }
+  }
+
   const [{ data: brief }, { data: rawMessages }, { data: myReview }] = await Promise.all([
     supabase.from('briefs').select('*').eq('project_id', id).maybeSingle(),
     supabase
@@ -64,30 +83,39 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   const messages = (rawMessages ?? []) as MessageWithSender[]
 
-  const mySignedAt = isPhotographer
-    ? brief?.signed_by_photographer_at ?? null
-    : brief?.signed_by_model_at ?? null
+  // Sign fields: proponente = chi ha compilato, ricevente = chi ha approvato
+  const proposerIsPhotographer = project.proposer_id === project.photographer_id
+  const mySignedAt = isProposer
+    ? (proposerIsPhotographer ? brief?.signed_by_photographer_at : brief?.signed_by_model_at) ?? null
+    : (proposerIsPhotographer ? brief?.signed_by_model_at : brief?.signed_by_photographer_at) ?? null
+  const otherSignedAt = isProposer
+    ? (proposerIsPhotographer ? brief?.signed_by_model_at : brief?.signed_by_photographer_at) ?? null
+    : (proposerIsPhotographer ? brief?.signed_by_photographer_at : brief?.signed_by_model_at) ?? null
 
-  const otherSignedAt = isPhotographer
-    ? brief?.signed_by_model_at ?? null
-    : brief?.signed_by_photographer_at ?? null
+  const canEditBrief = isProposer && project.status === 'accepted'
+  const canApproveBrief = !isProposer && project.status === 'accepted' && !!brief
+  const showBrief = ['accepted', 'brief_signed', 'paid', 'completed'].includes(project.status)
+  const showChat = ['brief_signed', 'paid', 'completed', 'disputed'].includes(project.status)
 
-  const canEditBrief = ['accepted'].includes(project.status)
-  const canAccept = project.status === 'proposed' && user.id !== project.proposed_by
   const canConfirm =
     (project.payer_role === 'tfp' && project.status === 'brief_signed') ||
     (project.payer_role !== 'tfp' && project.status === 'paid')
 
   return (
     <div className="min-h-screen">
-      <AppNav userInitials={userInitials} userId={user.id} avatarUrl={me.avatar_url ?? null} notifications={notifications} />
+      <AppNav
+        userInitials={userInitials}
+        userId={user.id}
+        avatarUrl={me.avatar_url ?? null}
+        notifications={notifications}
+      />
 
       <div className="max-w-3xl mx-auto px-6 py-8 space-y-10">
         {/* Header partecipanti */}
         <div className="flex items-center gap-4">
           <ParticipantChip profile={project.photographer} label="Fotografo" isMe={isPhotographer} />
           <span className="text-neutral-700 text-sm">×</span>
-          <ParticipantChip profile={project.model} label={project.model.role === 'model' ? 'Modella / Modello' : 'Modella'} isMe={isModel} />
+          <ParticipantChip profile={project.model} label="Modella / Modello" isMe={isModel} />
         </div>
 
         {/* Status bar */}
@@ -97,44 +125,58 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
             status={project.status}
             payerRole={project.payer_role}
             amount={project.amount}
+            compensationNote={project.compensation_note ?? null}
           />
         </section>
+
+        {/* Banner contestuale */}
+        <ProjectBanner
+          status={project.status}
+          isProposer={isProposer}
+          briefExists={!!brief}
+        />
 
         {/* Azioni principali */}
         <ProjectActions
           projectId={id}
           status={project.status}
           payerRole={project.payer_role}
-          canAccept={canAccept}
+          canAccept={false}
           canConfirm={canConfirm}
-          isProposer={project.status === 'proposed' && user.id === project.proposed_by}
+          isProposer={isProposer}
         />
 
         {/* Brief */}
-        {['accepted', 'brief_signed', 'paid', 'completed'].includes(project.status) && (
+        {showBrief && (
           <section className="space-y-4">
             <SectionTitle>Brief dello shooting</SectionTitle>
             <BriefForm
               projectId={id}
               existingBrief={brief ?? null}
+              canEdit={canEditBrief}
+              canApprove={canApproveBrief}
+              currentUserId={user.id}
+              initialLocation={inviteInitialData?.location ?? null}
+              initialMoodboardUrls={inviteInitialData?.moodboard_urls ?? []}
               mySignedAt={mySignedAt}
               otherSignedAt={otherSignedAt}
-              canEdit={canEditBrief}
             />
           </section>
         )}
 
-        {/* Chat */}
-        <section className="space-y-4">
-          <SectionTitle>Chat</SectionTitle>
-          <ChatBox
-            projectId={id}
-            currentUserId={user.id}
-            initialMessages={messages}
-          />
-        </section>
+        {/* Chat (solo dopo brief approvato) */}
+        {showChat && (
+          <section className="space-y-4">
+            <SectionTitle>Chat</SectionTitle>
+            <ChatBox
+              projectId={id}
+              currentUserId={user.id}
+              initialMessages={messages}
+            />
+          </section>
+        )}
 
-        {/* Recensioni (solo dopo completamento) */}
+        {/* Recensioni */}
         {project.status === 'completed' && !myReview && (
           <section className="space-y-4">
             <SectionTitle>Lascia una recensione</SectionTitle>
@@ -180,5 +222,57 @@ function ParticipantChip({
       {isMe && <span className="text-xs text-neutral-600">(tu)</span>}
       <span className="text-xs text-neutral-600">Lv.{profile.level}</span>
     </Link>
+  )
+}
+
+function ProjectBanner({
+  status,
+  isProposer,
+  briefExists,
+}: {
+  status: string
+  isProposer: boolean
+  briefExists: boolean
+}) {
+  if (status !== 'accepted') return null
+
+  if (isProposer) {
+    if (!briefExists) {
+      return (
+        <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 px-4 py-3 space-y-1">
+          <p className="text-sm font-medium text-violet-300">Compila il brief dello shooting</p>
+          <p className="text-xs text-violet-600">
+            Inserisci i dettagli. La tua controparte riceverà una notifica e potrà approvarlo.
+          </p>
+        </div>
+      )
+    }
+    return (
+      <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 space-y-1">
+        <p className="text-sm font-medium text-amber-300">Brief inviato — in attesa di approvazione</p>
+        <p className="text-xs text-amber-600">
+          Ti avviseremo quando la tua controparte approverà il brief.
+        </p>
+      </div>
+    )
+  }
+
+  if (!briefExists) {
+    return (
+      <div className="rounded-xl border border-neutral-700 bg-neutral-900/50 px-4 py-3 space-y-1">
+        <p className="text-sm font-medium text-neutral-300">Il proponente sta consolidando il progetto</p>
+        <p className="text-xs text-neutral-600">
+          Riceverai una notifica quando il brief sarà pronto per la tua revisione.
+        </p>
+      </div>
+    )
+  }
+  return (
+    <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3 space-y-1">
+      <p className="text-sm font-medium text-blue-300">Brief pronto — revisiona e approva</p>
+      <p className="text-xs text-blue-600">
+        Controlla i dettagli qui sotto e approva per aprire la chat del progetto.
+      </p>
+    </div>
   )
 }

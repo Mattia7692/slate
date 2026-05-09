@@ -22,9 +22,10 @@ interface ProjectStatusProps {
   status: ProjectStatus
   payerRole: PayerRole
   amount: number
+  compensationNote: string | null
 }
 
-export function ProjectStatusBar({ status, payerRole, amount }: ProjectStatusProps) {
+export function ProjectStatusBar({ status, payerRole, amount, compensationNote }: ProjectStatusProps) {
   const currentOrder = STATUS_ORDER[status]
   const isCancelled = status === 'cancelled'
   const isDisputed = status === 'disputed'
@@ -116,13 +117,24 @@ export function ProjectStatusBar({ status, payerRole, amount }: ProjectStatusPro
 
       {/* Badge compenso */}
       <div className="flex items-center gap-2 pt-1">
-        {isTfp ? (
+        {compensationNote ? (
+          <span className={[
+            'text-xs rounded-full border px-2.5 py-0.5',
+            compensationNote.startsWith('TFP')
+              ? 'border-sky-500/20 bg-sky-500/10 text-sky-400'
+              : compensationNote.startsWith('Pago io')
+              ? 'border-blue-500/20 bg-blue-500/10 text-blue-400'
+              : 'border-amber-500/20 bg-amber-500/10 text-amber-400',
+          ].join(' ')}>
+            {compensationNote}
+          </span>
+        ) : isTfp ? (
           <span className="text-xs rounded-full border border-sky-500/20 bg-sky-500/10 text-sky-400 px-2.5 py-0.5">
             TFP — Nessun compenso
           </span>
         ) : (
           <span className="text-xs rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 px-2.5 py-0.5">
-            Compenso: €{(amount / 100).toFixed(2)} · paga{' '}
+            Compenso: €{(amount / 100).toFixed(0)} · paga{' '}
             {payerRole === 'photographer' ? 'il fotografo' : 'la modella'}
           </span>
         )}

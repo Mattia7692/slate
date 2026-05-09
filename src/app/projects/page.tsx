@@ -7,8 +7,8 @@ import type { ProjectStatus, Notification } from '@/types'
 
 const STATUS_LABEL: Record<ProjectStatus, string> = {
   proposed: 'Proposta',
-  accepted: 'Accettato',
-  brief_signed: 'Brief firmato',
+  accepted: 'In preparazione',
+  brief_signed: 'Brief approvato',
   paid: 'Pagato',
   completed: 'Completato',
   disputed: 'In disputa',

@@ -77,6 +77,9 @@ export interface Project {
   id: string
   photographer_id: string
   model_id: string
+  proposer_id: string | null
+  compensation_note: string | null
+  invite_id: string | null
   status: ProjectStatus
   payer_role: PayerRole
   amount: number
@@ -161,6 +164,7 @@ export interface Brief {
   delivery_days: number
   usage: ShootUsage
   notes: string | null
+  moodboard_urls: string[]
   signed_by_photographer_at: string | null
   signed_by_model_at: string | null
   created_at: string
@@ -286,4 +290,5 @@ export interface BriefFormData {
   delivery_days: number
   usage: ShootUsage
   notes: string
+  moodboard_urls: string[]
 }

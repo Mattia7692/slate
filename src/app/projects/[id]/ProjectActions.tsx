@@ -63,28 +63,12 @@ export function ProjectActions({
       {status === 'brief_signed' && payerRole !== 'tfp' && (
         <div className="w-full rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
           <p className="text-sm text-amber-400">
-            Brief firmato da entrambi. Il pagamento è richiesto per procedere.
+            Brief approvato. Il pagamento è richiesto per procedere.
           </p>
           <p className="text-xs text-amber-600 mt-1">
-            La funzionalità di pagamento sarà disponibile a breve (Step 8).
+            La funzionalità di pagamento sarà disponibile a breve.
           </p>
         </div>
-      )}
-
-      {/* Cancella */}
-      {!['completed', 'cancelled'].includes(status) && (
-        <Button
-          variant="ghost"
-          size="sm"
-          loading={isPending}
-          onClick={() => {
-            if (confirm('Sei sicuro di voler cancellare questo progetto?')) {
-              run(() => cancelProject(projectId))
-            }
-          }}
-        >
-          Cancella progetto
-        </Button>
       )}
     </div>
   )

@@ -129,12 +129,36 @@ export default async function TourDetailPage({ params }: Props) {
         </div>
 
         {/* Location */}
-        {tour.location_available && tour.location && (
-          <div className="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3">
-            <p className="text-[11px] text-neutral-500 mb-1">Location disponibile</p>
-            <p className="text-sm text-neutral-300">{tour.location}</p>
-          </div>
-        )}
+        {tour.location_available && tour.location && (() => {
+          let desc = tour.location
+          let address: string | null = null
+          try {
+            const parsed = JSON.parse(tour.location) as { description?: string; address?: string }
+            if (parsed.description || parsed.address) {
+              desc = parsed.description ?? ''
+              address = parsed.address ?? null
+            }
+          } catch { /* plain text fallback */ }
+          return (
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 space-y-2">
+              <p className="text-[11px] text-neutral-500">Location disponibile</p>
+              {desc && <p className="text-sm text-neutral-300">{desc}</p>}
+              {address && (
+                <a
+                  href={`https://maps.google.com/?q=${encodeURIComponent(address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                  </svg>
+                  {address}
+                </a>
+              )}
+            </div>
+          )
+        })()}
 
         {/* Generi */}
         {tourGenres.length > 0 && (

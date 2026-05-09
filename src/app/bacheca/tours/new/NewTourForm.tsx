@@ -6,7 +6,7 @@ import { createTour } from '../actions'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { GenrePills } from '@/components/profile/GenrePills'
-import { eachDayOfInterval, parseISO, differenceInDays } from 'date-fns'
+import { parseISO, differenceInDays } from 'date-fns'
 import type { Genre } from '@/types'
 
 interface Props {
@@ -19,7 +19,8 @@ interface Step1 {
   title: string
   city: string
   location_available: boolean
-  location: string
+  location_description: string
+  location_address: string
   start_date: string
   end_date: string
   hourly_rate: string
@@ -40,7 +41,8 @@ const DEFAULT_S1: Step1 = {
   title: '',
   city: '',
   location_available: false,
-  location: '',
+  location_description: '',
+  location_address: '',
   start_date: '',
   end_date: '',
   hourly_rate: '',
@@ -64,12 +66,9 @@ function numDays(s1: Step1): number {
   } catch { return 0 }
 }
 
-function slotPreview(s1: Step1, s2: Step2): string {
-  const days = numDays(s1)
-  if (days <= 0) return ''
+function slotCount(s2: Step2, days: number) {
   const perDay = (parseInt(s2.morning_slots) || 0) + (parseInt(s2.afternoon_slots) || 0)
-  const total = perDay * days
-  return `${perDay} slot/giorno × ${days} ${days === 1 ? 'giorno' : 'giorni'} = ${total} slot totali`
+  return { perDay, total: perDay * days }
 }
 
 export function NewTourForm({ genres }: Props) {
@@ -82,6 +81,9 @@ export function NewTourForm({ genres }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitBlocked, setSubmitBlocked] = useState(false)
+
+  // Map: update src only on blur to avoid iframe flashing on every keystroke
+  const [mapQuery, setMapQuery] = useState('')
 
   const supabaseRef = useRef(createClient())
 
@@ -110,6 +112,10 @@ export function NewTourForm({ genres }: Props) {
 
   function canProceed(): boolean {
     if (step === 0) {
+      const locationOk = !s1.location_available || (
+        s1.location_description.trim().length >= 2 &&
+        s1.location_address.trim().length >= 2
+      )
       return (
         s1.title.trim().length >= 2 &&
         s1.city.trim().length >= 2 &&
@@ -117,7 +123,8 @@ export function NewTourForm({ genres }: Props) {
         !!s1.end_date &&
         s1.end_date >= s1.start_date &&
         !!s1.hourly_rate &&
-        parseInt(s1.hourly_rate) > 0
+        parseInt(s1.hourly_rate) > 0 &&
+        locationOk
       )
     }
     if (step === 1) {
@@ -157,11 +164,16 @@ export function NewTourForm({ genres }: Props) {
         imageUrls.push(data.publicUrl)
       }
 
+      // Pack location description + address into a single JSON for the DB column
+      const locationValue = s1.location_available
+        ? JSON.stringify({ description: s1.location_description.trim(), address: s1.location_address.trim() })
+        : null
+
       const result = await createTour({
         title: s1.title.trim(),
         city: s1.city.trim(),
         location_available: s1.location_available,
-        location: s1.location_available ? s1.location.trim() || null : null,
+        location: locationValue,
         start_date: s1.start_date,
         end_date: s1.end_date,
         hourly_rate: parseInt(s1.hourly_rate),
@@ -186,6 +198,13 @@ export function NewTourForm({ genres }: Props) {
   }
 
   const fieldCls = 'w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20'
+
+  // Economic preview (computed in step 1 but needs hourly_rate from step 0)
+  const days = numDays(s1)
+  const { perDay, total } = slotCount(s2, days)
+  const rate = parseInt(s1.hourly_rate) || 0
+  const dur = parseInt(s2.slot_duration_hours) || 0
+  const potentialEarnings = total * dur * rate
 
   return (
     <div className="space-y-8">
@@ -225,8 +244,8 @@ export function NewTourForm({ genres }: Props) {
           />
 
           {/* Location toggle */}
-          <div className="space-y-2">
-            <label className="flex items-center gap-3 cursor-pointer group">
+          <div className="space-y-3">
+            <label className="flex items-center gap-3 cursor-pointer">
               <div
                 onClick={() => set1('location_available', !s1.location_available)}
                 className={[
@@ -241,14 +260,53 @@ export function NewTourForm({ genres }: Props) {
               </div>
               <span className="text-sm text-neutral-300">Ho una location disponibile</span>
             </label>
+
             {s1.location_available && (
-              <textarea
-                value={s1.location}
-                onChange={(e) => set1('location', e.target.value)}
-                placeholder="Descrivi la location (studio, spazio outdoor, indirizzo…)"
-                rows={2}
-                className={fieldCls + ' resize-none'}
-              />
+              <div className="space-y-3 pl-1">
+                {/* Descrizione */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-neutral-300">
+                    Descrizione location <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={s1.location_description}
+                    onChange={(e) => set1('location_description', e.target.value)}
+                    placeholder="Studio privato con luce naturale, ciclorama bianco, zona trucco…"
+                    rows={2}
+                    className={fieldCls + ' resize-none'}
+                  />
+                </div>
+
+                {/* Indirizzo */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-neutral-300">
+                    Indirizzo <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={s1.location_address}
+                    onChange={(e) => set1('location_address', e.target.value)}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim()
+                      if (v.length > 4) setMapQuery(v)
+                    }}
+                    placeholder="Via Roma 1, Milano"
+                    className={fieldCls}
+                  />
+                </div>
+
+                {/* Mappa */}
+                {mapQuery && (
+                  <div className="rounded-xl overflow-hidden border border-neutral-700 h-44">
+                    <iframe
+                      src={`https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed&hl=it&z=15`}
+                      className="w-full h-full"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
@@ -329,11 +387,32 @@ export function NewTourForm({ genres }: Props) {
             </div>
           </div>
 
-          {/* Anteprima */}
-          {slotPreview(s1, s2) && (
-            <div className="rounded-xl border border-neutral-700 bg-neutral-900/60 px-4 py-3">
-              <p className="text-xs text-neutral-500">Anteprima slot</p>
-              <p className="text-sm font-medium text-neutral-200 mt-1">{slotPreview(s1, s2)}</p>
+          {/* Anteprima + guadagno */}
+          {days > 0 && perDay > 0 && (
+            <div className="rounded-xl border border-neutral-700 bg-neutral-900/60 px-4 py-4 space-y-3">
+              <p className="text-xs text-neutral-500 uppercase tracking-wider font-medium">Anteprima</p>
+
+              <div className="flex items-baseline justify-between">
+                <p className="text-sm text-neutral-400">Slot totali</p>
+                <p className="text-sm font-semibold text-neutral-100">
+                  {perDay} slot/giorno × {days} {days === 1 ? 'giorno' : 'giorni'} = <span className="text-white">{total} slot</span>
+                </p>
+              </div>
+
+              {rate > 0 && dur > 0 && (
+                <>
+                  <div className="h-px bg-neutral-800" />
+                  <div className="flex items-baseline justify-between">
+                    <p className="text-sm text-neutral-400">Potenziale guadagno</p>
+                    <p className="text-base font-bold text-emerald-400">
+                      €{potentialEarnings.toLocaleString('it-IT')}
+                    </p>
+                  </div>
+                  <p className="text-[11px] text-neutral-600">
+                    {total} slot × {dur}h × €{rate}/h — se tutti confermati
+                  </p>
+                </>
+              )}
             </div>
           )}
         </div>

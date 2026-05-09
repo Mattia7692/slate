@@ -26,11 +26,12 @@ function groupByDate(slots: TourSlotWithBooker[]): Map<string, TourSlotWithBooke
   return map
 }
 
-const STATUS_STYLES: Record<SlotStatus, string> = {
+const STATUS_STYLES: Record<SlotStatus | 'occupied', string> = {
   free: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20',
   booked: 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20',
   confirmed: 'border-blue-500/40 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20',
   cancelled: 'border-neutral-700 bg-neutral-900 text-neutral-600',
+  occupied: 'border-red-500/30 bg-red-500/10 text-red-400',
 }
 
 const STATUS_LABEL: Record<SlotStatus, string> = {
@@ -82,8 +83,8 @@ export function TourCalendar({ slots, isCreator, tourId, creatorId, tourStatus, 
         { status: 'cancelled' as SlotStatus, label: 'Annullato' },
       ]
     : [
-        { status: 'free' as SlotStatus, label: 'Prenota' },
-        { status: 'booked' as SlotStatus, label: 'Occupato' },
+        { status: 'free' as SlotStatus | 'occupied', label: 'Prenota' },
+        { status: 'occupied' as SlotStatus | 'occupied', label: 'Occupato' },
       ]
 
   return (
@@ -111,13 +112,13 @@ export function TourCalendar({ slots, isCreator, tourId, creatorId, tourStatus, 
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {daySlots.map((slot) => {
-                  // For non-creators, show occupied slots as grey
-                  const displayStatus: SlotStatus =
-                    !isCreator && (slot.status === 'booked' && slot.booked_by !== currentUserId)
-                      ? 'cancelled'
-                      : !isCreator && slot.status === 'confirmed'
-                      ? 'cancelled'
-                      : slot.status
+                  const isOccupiedForPhotographer =
+                    !isCreator &&
+                    ((slot.status === 'booked' && slot.booked_by !== currentUserId) ||
+                      slot.status === 'confirmed')
+                  const displayStatus: SlotStatus | 'occupied' = isOccupiedForPhotographer
+                    ? 'occupied'
+                    : slot.status
 
                   const clickable = isClickable(slot)
 

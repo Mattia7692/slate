@@ -45,7 +45,7 @@ export function PartecipaModal({
         message: message.trim() || null,
         creative_idea: '',
         location: '',
-        alternative_amount: null,
+        compensation_note: '',
         moodboard_urls: [],
       })
       if (result.error) {

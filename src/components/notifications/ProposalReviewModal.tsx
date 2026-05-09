@@ -47,14 +47,6 @@ export function ProposalReviewModal({ inviteId, currentUserId, onClose }: Props)
   }
 
   const isReceiver = invite?.to_profile.id === currentUserId
-  const amountEur = invite ? invite.proposed_amount / 100 : 0
-
-  function payerLabel() {
-    if (!invite) return ''
-    if (invite.proposed_payer === 'tfp') return 'TFP — nessun compenso'
-    const payerProfile = invite.proposed_payer === 'from' ? invite.from_profile : invite.to_profile
-    return `€${amountEur.toFixed(0)} — paga ${payerProfile.full_name.split(' ')[0]}`
-  }
 
   return (
     <div
@@ -73,18 +65,20 @@ export function ProposalReviewModal({ inviteId, currentUserId, onClose }: Props)
             <div>
               <p className="text-[11px] text-neutral-600 uppercase tracking-wider mb-1.5">Proposta di collaborazione</p>
               {invite && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-medium text-neutral-100">{invite.from_profile.full_name}</span>
-                  <RoleBadge role={invite.from_profile.role as 'photographer' | 'model'} />
-                  <span className="text-[10px] text-neutral-600 border border-neutral-700 px-1.5 py-0.5 rounded-full">
-                    Lv.{invite.from_profile.level}
-                  </span>
-                  <span className="text-neutral-600 text-xs">→</span>
-                  <span className="text-sm font-medium text-neutral-100">{invite.to_profile.full_name}</span>
-                  <RoleBadge role={invite.to_profile.role as 'photographer' | 'model'} />
-                  <span className="text-[10px] text-neutral-600 border border-neutral-700 px-1.5 py-0.5 rounded-full">
-                    Lv.{invite.to_profile.level}
-                  </span>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-sm font-medium text-neutral-100">{invite.from_profile.full_name}</span>
+                    <RoleBadge role={invite.from_profile.role as 'photographer' | 'model'} />
+                    <span className="text-[10px] text-neutral-600 border border-neutral-700 px-1.5 py-0.5 rounded-full">Lv.{invite.from_profile.level}</span>
+                    {invite.from_profile.city && <span className="text-[11px] text-neutral-500">{invite.from_profile.city}</span>}
+                  </div>
+                  <div className="pl-1 text-neutral-700 text-xs">↓</div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-sm font-medium text-neutral-100">{invite.to_profile.full_name}</span>
+                    <RoleBadge role={invite.to_profile.role as 'photographer' | 'model'} />
+                    <span className="text-[10px] text-neutral-600 border border-neutral-700 px-1.5 py-0.5 rounded-full">Lv.{invite.to_profile.level}</span>
+                    {invite.to_profile.city && <span className="text-[11px] text-neutral-500">{invite.to_profile.city}</span>}
+                  </div>
                 </div>
               )}
             </div>
@@ -114,20 +108,13 @@ export function ProposalReviewModal({ inviteId, currentUserId, onClose }: Props)
 
           {invite && (
             <>
-              {/* Compenso */}
-              <div className={[
-                'rounded-xl px-4 py-3 text-sm font-medium',
-                invite.proposed_payer === 'tfp'
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                  : 'bg-neutral-800/60 text-neutral-200 border border-neutral-700',
-              ].join(' ')}>
-                {payerLabel()}
-                {invite.alternative_amount && (
-                  <p className="text-xs text-neutral-500 mt-1 font-normal">
-                    Importo alternativo proposto: €{(invite.alternative_amount / 100).toFixed(0)}
-                  </p>
-                )}
-              </div>
+              {/* Compenso proposto */}
+              {invite.compensation_note && (
+                <div className="rounded-xl border border-neutral-700 bg-neutral-900/60 px-4 py-3 space-y-0.5">
+                  <p className="text-[10px] text-neutral-500 uppercase tracking-wider">Compenso proposto</p>
+                  <p className="text-sm text-neutral-200 font-medium">{invite.compensation_note}</p>
+                </div>
+              )}
 
               {/* Idea creativa */}
               {invite.creative_idea && (

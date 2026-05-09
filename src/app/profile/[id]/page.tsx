@@ -48,7 +48,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   // Profilo dell'utente corrente (per calcolo compenso + nav)
   const { data: myProfile } = await supabase
     .from('profiles')
-    .select('id, role, level, full_name, avatar_url')
+    .select('id, role, level, full_name, avatar_url, city')
     .eq('id', user.id)
     .single()
 
@@ -147,9 +147,11 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               targetName={profile.full_name}
               targetLevel={profile.level}
               targetRole={profile.role}
+              targetCity={profile.city ?? null}
               currentLevel={myProfile.level}
               currentRole={myProfile.role}
               currentName={myProfile.full_name}
+              currentCity={(myProfile as { city?: string | null }).city ?? null}
               currentUserId={user!.id}
             />
             <MessageButton targetUserId={id} />

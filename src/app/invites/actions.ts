@@ -11,7 +11,7 @@ interface SendInvitePayload {
   message: string | null
   creative_idea: string
   location: string
-  alternative_amount: number | null
+  compensation_note: string
   moodboard_urls: string[]
 }
 
@@ -66,7 +66,7 @@ export async function sendInvite(receiverId: string, payload: SendInvitePayload)
       notes: payload.message,
       creative_idea: payload.creative_idea,
       location: payload.location,
-      alternative_amount: payload.alternative_amount,
+      compensation_note: payload.compensation_note,
       moodboard_urls: payload.moodboard_urls,
       status: 'pending',
       proposed_payer: proposedPayer,
@@ -216,13 +216,13 @@ export interface InviteDetails {
   creative_idea: string | null
   location: string | null
   notes: string | null
+  compensation_note: string | null
   moodboard_urls: string[]
   proposed_payer: string
   proposed_amount: number
-  alternative_amount: number | null
   created_at: string
-  from_profile: { id: string; full_name: string; role: string; level: number; avatar_url: string | null }
-  to_profile: { id: string; full_name: string; role: string; level: number; avatar_url: string | null }
+  from_profile: { id: string; full_name: string; role: string; level: number; avatar_url: string | null; city: string | null }
+  to_profile: { id: string; full_name: string; role: string; level: number; avatar_url: string | null; city: string | null }
 }
 
 export async function getInviteDetails(inviteId: string): Promise<{ data: InviteDetails | null; error: string | null }> {
@@ -234,10 +234,10 @@ export async function getInviteDetails(inviteId: string): Promise<{ data: Invite
   const { data, error } = await adminClient
     .from('project_invites')
     .select(`
-      id, creative_idea, location, notes, moodboard_urls,
-      proposed_payer, proposed_amount, alternative_amount, created_at,
-      from_profile:profiles!project_invites_from_profile_id_fkey(id, full_name, role, level, avatar_url),
-      to_profile:profiles!project_invites_to_profile_id_fkey(id, full_name, role, level, avatar_url)
+      id, creative_idea, location, notes, compensation_note, moodboard_urls,
+      proposed_payer, proposed_amount, created_at,
+      from_profile:profiles!project_invites_from_profile_id_fkey(id, full_name, role, level, avatar_url, city),
+      to_profile:profiles!project_invites_to_profile_id_fkey(id, full_name, role, level, avatar_url, city)
     `)
     .eq('id', inviteId)
     .eq('status', 'pending')
@@ -256,10 +256,10 @@ export async function getInviteDetails(inviteId: string): Promise<{ data: Invite
       creative_idea: data.creative_idea,
       location: data.location,
       notes: data.notes,
+      compensation_note: data.compensation_note as string | null,
       moodboard_urls: (data.moodboard_urls as string[]) ?? [],
       proposed_payer: data.proposed_payer as string,
       proposed_amount: data.proposed_amount,
-      alternative_amount: data.alternative_amount,
       created_at: data.created_at,
       from_profile: from,
       to_profile: to,

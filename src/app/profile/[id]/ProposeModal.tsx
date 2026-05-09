@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useTransition, useRef } from 'react'
+import { useState, useTransition, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { sendInvite } from '@/app/invites/actions'
-import { calculatePayment } from '@/lib/payment'
 import { RoleBadge } from '@/components/profile/RoleBadge'
 import type { UserRole } from '@/types'
 
@@ -13,16 +12,62 @@ interface ProposeModalProps {
   targetName: string
   targetLevel: number
   targetRole: UserRole
+  targetCity: string | null
   currentLevel: number
   currentRole: UserRole
   currentName: string
+  currentCity: string | null
   currentUserId: string
 }
 
-const PAYER_LABEL: Record<string, string> = {
-  photographer: 'paga il fotografo',
-  model:        'paga il/la modell*',
-  tfp:          'TFP — nessun pagamento',
+// Suggerimento compenso basato sui livelli
+function compensationSuggestion(
+  currentName: string, currentLevel: number,
+  targetName: string, targetLevel: number,
+): string {
+  if (currentLevel === targetLevel) {
+    return `${currentName} e ${targetName} sono allo stesso livello. Il nostro suggerimento è un accordo TFP — nessun pagamento, il lavoro vale uguale per entrambi.`
+  }
+  const senior = currentLevel > targetLevel ? currentName : targetName
+  const junior = currentLevel > targetLevel ? targetName : currentName
+  const seniorLv = currentLevel > targetLevel ? currentLevel : targetLevel
+  const juniorLv = currentLevel > targetLevel ? targetLevel : currentLevel
+  return `${senior} (Lv.${seniorLv}) ha più esperienza di ${junior} (Lv.${juniorLv}). Il nostro suggerimento è che, se c'è uno scambio di denaro, vada da ${junior} → ${senior}. Siete liberi di accordarvi diversamente su un compenso che valorizzi il lavoro di entrambi.`
+}
+
+// Hook per mappa OSM con debounce geocoding
+function useLocationMap(location: string) {
+  const [mapUrl, setMapUrl] = useState<string | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    if (location.trim().length < 3) { setMapUrl(null); return }
+
+    timerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`,
+          { headers: { 'Accept-Language': 'it' } }
+        )
+        const results = await res.json()
+        if (results.length > 0) {
+          const { lat, lon } = results[0]
+          const delta = 0.02
+          const bbox = `${parseFloat(lon) - delta},${parseFloat(lat) - delta},${parseFloat(lon) + delta},${parseFloat(lat) + delta}`
+          setMapUrl(`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`)
+        } else {
+          setMapUrl(null)
+        }
+      } catch {
+        setMapUrl(null)
+      }
+    }, 800)
+
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  }, [location])
+
+  return mapUrl
 }
 
 export function ProposeModal({
@@ -30,27 +75,28 @@ export function ProposeModal({
   targetName,
   targetLevel,
   targetRole,
+  targetCity,
   currentLevel,
   currentRole,
   currentName,
+  currentCity,
   currentUserId,
 }: ProposeModalProps) {
   const [open, setOpen] = useState(false)
+  const [compensationNote, setCompensationNote] = useState('')
   const [creativeIdea, setCreativeIdea] = useState('')
   const [location, setLocation] = useState('')
   const [message, setMessage] = useState('')
-  const [altAmount, setAltAmount] = useState('')
   const [moodboardUrls, setMoodboardUrls] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
   const [isPending, startTransition] = useTransition()
-  const [errors, setErrors] = useState<{ creativeIdea?: string; location?: string }>({})
+  const [errors, setErrors] = useState<{ compensationNote?: string; creativeIdea?: string; location?: string }>({})
   const moodboardRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const supabase = createClient()
+  const mapUrl = useLocationMap(location)
 
-  const photographerLevel = currentRole === 'photographer' ? currentLevel : targetLevel
-  const modelLevel = currentRole === 'model' ? currentLevel : targetLevel
-  const payment = calculatePayment(photographerLevel, modelLevel)
+  const suggestion = compensationSuggestion(currentName, currentLevel, targetName, targetLevel)
 
   async function handleMoodboardUpload(files: FileList | null) {
     if (!files || files.length === 0) return
@@ -74,6 +120,7 @@ export function ProposeModal({
 
   function validate() {
     const e: typeof errors = {}
+    if (!compensationNote.trim()) e.compensationNote = 'Campo obbligatorio'
     if (!creativeIdea.trim()) e.creativeIdea = 'Campo obbligatorio'
     if (!location.trim()) e.location = 'Campo obbligatorio'
     setErrors(e)
@@ -87,18 +134,19 @@ export function ProposeModal({
         message: message.trim() || null,
         creative_idea: creativeIdea.trim(),
         location: location.trim(),
-        alternative_amount: altAmount ? Math.round(parseFloat(altAmount) * 100) : null,
+        compensation_note: compensationNote.trim(),
         moodboard_urls: moodboardUrls,
       })
       if (result.error) { alert(result.error); return }
       setOpen(false)
       resetForm()
-      router.push(`/dashboard`)
+      router.push('/dashboard')
     })
   }
 
   function resetForm() {
-    setCreativeIdea(''); setLocation(''); setMessage(''); setAltAmount(''); setMoodboardUrls([]); setErrors({})
+    setCompensationNote(''); setCreativeIdea(''); setLocation('')
+    setMessage(''); setMoodboardUrls([]); setErrors({})
   }
 
   function handleClose() { setOpen(false); resetForm() }
@@ -122,53 +170,52 @@ export function ProposeModal({
             {/* Header */}
             <div className="px-5 pt-5 pb-4 border-b border-neutral-800 shrink-0">
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5">Proposta di collaborazione</p>
-                  <div className="flex items-center gap-2 flex-wrap text-sm">
-                    <span className="font-semibold text-neutral-100">{currentName}</span>
-                    <span className="text-neutral-600 text-xs border border-neutral-700 px-1.5 py-0.5 rounded-full">Lv.{currentLevel}</span>
+                <div className="space-y-2 flex-1">
+                  <p className="text-[10px] text-neutral-500 uppercase tracking-wider">Proposta di collaborazione</p>
+                  {/* Proponente */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-sm font-semibold text-neutral-100">{currentName}</span>
                     <RoleBadge role={currentRole} />
-                    <span className="text-neutral-600">→</span>
-                    <span className="font-semibold text-neutral-100">{targetName}</span>
-                    <span className="text-neutral-600 text-xs border border-neutral-700 px-1.5 py-0.5 rounded-full">Lv.{targetLevel}</span>
+                    <span className="text-[10px] text-neutral-600 border border-neutral-700 px-1.5 py-0.5 rounded-full">Lv.{currentLevel}</span>
+                    {currentCity && <span className="text-[11px] text-neutral-500">{currentCity}</span>}
+                  </div>
+                  <div className="flex items-center gap-1.5 pl-1">
+                    <span className="text-neutral-700 text-xs">↓</span>
+                  </div>
+                  {/* Destinatario */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-sm font-semibold text-neutral-100">{targetName}</span>
                     <RoleBadge role={targetRole} />
+                    <span className="text-[10px] text-neutral-600 border border-neutral-700 px-1.5 py-0.5 rounded-full">Lv.{targetLevel}</span>
+                    {targetCity && <span className="text-[11px] text-neutral-500">{targetCity}</span>}
                   </div>
                 </div>
-                <button onClick={handleClose} className="text-neutral-600 hover:text-neutral-300 transition-colors text-lg leading-none shrink-0 mt-0.5">✕</button>
+                <button onClick={handleClose} className="text-neutral-600 hover:text-neutral-300 transition-colors shrink-0 mt-0.5 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-neutral-800">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <line x1="1" y1="1" x2="11" y2="11" /><line x1="11" y1="1" x2="1" y2="11" />
+                  </svg>
+                </button>
               </div>
             </div>
 
-            {/* Body — scrollabile */}
+            {/* Body */}
             <div className="overflow-y-auto flex-1 px-5 py-4 space-y-5">
 
-              {/* Compenso Slate */}
-              <div className="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 space-y-1">
-                <p className="text-[10px] text-neutral-500 uppercase tracking-wider">Compenso calcolato da Slate</p>
-                {payment.payerRole === 'tfp' ? (
-                  <p className="text-sm font-semibold text-emerald-400">TFP — nessun pagamento · livelli identici</p>
-                ) : (
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-xl font-bold text-neutral-100">€{payment.amountEur.toFixed(0)}</span>
-                    <span className="text-xs text-neutral-500">{PAYER_LABEL[payment.payerRole]}</span>
-                    <span className="text-xs text-neutral-700 ml-auto">{payment.levelDiff} lv. diff · €50/lv.</span>
-                  </div>
-                )}
+              {/* Suggerimento compenso */}
+              <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 px-4 py-3 space-y-1.5">
+                <p className="text-[10px] text-neutral-500 uppercase tracking-wider">Suggerimento Slate</p>
+                <p className="text-xs text-neutral-400 leading-relaxed">{suggestion}</p>
               </div>
 
-              {/* Compenso alternativo */}
-              <Field label="Compenso alternativo proposto" hint="opzionale">
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-neutral-500">€</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={altAmount}
-                    onChange={(e) => setAltAmount(e.target.value)}
-                    placeholder={payment.payerRole === 'tfp' ? '0' : payment.amountEur.toFixed(0)}
-                    className="w-full rounded-lg border border-neutral-700 bg-neutral-900 pl-7 pr-3 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-neutral-500 focus:outline-none"
-                  />
-                </div>
+              {/* Compenso proposto — obbligatorio */}
+              <Field label="Compenso proposto" hint="obbligatorio" error={errors.compensationNote}>
+                <input
+                  type="text"
+                  value={compensationNote}
+                  onChange={(e) => { setCompensationNote(e.target.value); if (errors.compensationNote) setErrors((p) => ({ ...p, compensationNote: undefined })) }}
+                  placeholder='Es. "TFP", "€150 da me a te", "€200 totali, metà ciascuno"…'
+                  className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-neutral-500 focus:outline-none"
+                />
               </Field>
 
               {/* Idea creativa */}
@@ -182,7 +229,7 @@ export function ProposeModal({
                 />
               </Field>
 
-              {/* Location */}
+              {/* Location + mappa */}
               <Field label="Location" hint="obbligatoria" error={errors.location}>
                 <input
                   type="text"
@@ -191,6 +238,16 @@ export function ProposeModal({
                   placeholder="Es. Studio a Milano, esterno Navigli, villa in campagna..."
                   className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-neutral-500 focus:outline-none"
                 />
+                {mapUrl && (
+                  <div className="mt-2 rounded-xl overflow-hidden border border-neutral-800 h-36">
+                    <iframe
+                      src={mapUrl}
+                      className="w-full h-full"
+                      style={{ border: 0 }}
+                      title="Mappa location"
+                    />
+                  </div>
+                )}
               </Field>
 
               {/* Messaggio */}

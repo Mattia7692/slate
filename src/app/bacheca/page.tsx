@@ -59,7 +59,7 @@ export default async function BachecaPage({ searchParams }: BachecaPageProps) {
       ? adminClient
           .from('tours')
           .select(`*, creator:profiles!tours_creator_id_fkey(id, full_name, role, avatar_url, level), images:tour_images(id, image_url, order_index)`)
-          .eq('status', 'open')
+          .eq('status', 'active')
           .order('created_at', { ascending: false })
       : Promise.resolve({ data: [] as unknown[] }),
   ])

@@ -212,7 +212,7 @@ export interface ConversationWithProfiles extends Conversation {
   participant_2_profile: Pick<Profile, 'id' | 'full_name' | 'role' | 'avatar_url' | 'level'>
 }
 
-export type TourStatus = 'open' | 'closed'
+export type TourStatus = 'active' | 'closed' | 'cancelled'
 export type SlotStatus = 'free' | 'booked' | 'confirmed' | 'cancelled'
 
 export interface Tour {

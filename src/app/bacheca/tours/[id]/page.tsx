@@ -81,11 +81,11 @@ export default async function TourDetailPage({ params }: Props) {
             <div className="absolute bottom-4 left-4 right-4">
               <span className={[
                 'text-[11px] font-semibold px-2 py-0.5 rounded-full border inline-block mb-2',
-                tour.status === 'open'
+                tour.status === 'active'
                   ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
                   : 'border-neutral-600 bg-neutral-800 text-neutral-500',
               ].join(' ')}>
-                {tour.status === 'open' ? 'Aperto' : 'Chiuso'}
+                {tour.status === 'active' ? 'Aperto' : 'Chiuso'}
               </span>
               <h1 className="text-xl font-bold text-white leading-tight">{tour.title}</h1>
             </div>
@@ -96,11 +96,11 @@ export default async function TourDetailPage({ params }: Props) {
           <div>
             <span className={[
               'text-[11px] font-semibold px-2 py-0.5 rounded-full border inline-block mb-2',
-              tour.status === 'open'
+              tour.status === 'active'
                 ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
                 : 'border-neutral-600 bg-neutral-800 text-neutral-500',
             ].join(' ')}>
-              {tour.status === 'open' ? 'Aperto' : 'Chiuso'}
+              {tour.status === 'active' ? 'Aperto' : 'Chiuso'}
             </span>
             <h1 className="text-2xl font-bold">{tour.title}</h1>
           </div>

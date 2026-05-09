@@ -4,14 +4,14 @@ import { useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { SlotModal } from './SlotModal'
-import type { TourSlotWithBooker, SlotStatus } from '@/types'
+import type { TourSlotWithBooker, TourStatus, SlotStatus } from '@/types'
 
 interface Props {
   slots: TourSlotWithBooker[]
   isCreator: boolean
   tourId: string
   creatorId: string
-  tourStatus: 'open' | 'closed'
+  tourStatus: TourStatus
   currentUserId: string
 }
 
@@ -65,7 +65,7 @@ export function TourCalendar({ slots, isCreator, tourId, creatorId, tourStatus, 
   }
 
   function isClickable(slot: TourSlotWithBooker): boolean {
-    if (tourStatus === 'closed') return false
+    if (tourStatus !== 'active') return false
     if (isCreator) return slot.status !== 'cancelled'
     // Photographer: can book free slots or view their own bookings
     if (slot.status === 'free') return true

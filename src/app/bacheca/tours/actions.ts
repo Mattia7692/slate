@@ -131,7 +131,7 @@ export async function createTour(payload: CreateTourPayload) {
       end_date: payload.end_date,
       hourly_rate: payload.hourly_rate,
       cover_url: coverUrl,
-      status: 'open',
+      status: 'active',
       genre_ids: payload.genre_ids,
       slot_duration_hours: payload.slot_duration_hours,
       morning_slots: payload.morning_slots,

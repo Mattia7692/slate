@@ -21,9 +21,11 @@ const LEVEL_PILLS = [
 interface ExploreFiltersProps {
   currentRole: string
   currentLevel: string
+  currentCity: string
+  cities: string[]
 }
 
-export function ExploreFilters({ currentRole, currentLevel }: ExploreFiltersProps) {
+export function ExploreFilters({ currentRole, currentLevel, currentCity, cities }: ExploreFiltersProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -78,6 +80,37 @@ export function ExploreFilters({ currentRole, currentLevel }: ExploreFiltersProp
           </button>
         ))}
       </div>
+
+      {/* Città */}
+      {cities.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => updateParam('city', '')}
+            className={[
+              'rounded-full px-4 py-1.5 text-sm font-medium transition-colors duration-150 cursor-pointer',
+              currentCity === ''
+                ? 'bg-white text-neutral-900'
+                : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200',
+            ].join(' ')}
+          >
+            Tutte le città
+          </button>
+          {cities.map((c) => (
+            <button
+              key={c}
+              onClick={() => updateParam('city', c)}
+              className={[
+                'rounded-full px-4 py-1.5 text-sm font-medium transition-colors duration-150 cursor-pointer',
+                currentCity === c
+                  ? 'bg-white text-neutral-900'
+                  : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200',
+              ].join(' ')}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

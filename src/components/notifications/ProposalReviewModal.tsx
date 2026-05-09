@@ -12,7 +12,6 @@ interface Props {
   onClose: () => void
 }
 
-// Colore livello
 const LEVEL_COLOR: Record<number, string> = {
   1: 'border-neutral-600 text-neutral-400',
   2: 'border-blue-500/50 text-blue-400',
@@ -31,7 +30,7 @@ function LevelBadge({ level }: { level: number }) {
 
 function CityBadge({ city }: { city: string }) {
   return (
-    <span className="text-[10px] border border-teal-500/30 text-teal-400 bg-teal-500/8 px-1.5 py-0.5 rounded-full">
+    <span className="text-[10px] border border-teal-500/30 text-teal-400 bg-teal-500/[0.08] px-1.5 py-0.5 rounded-full">
       {city}
     </span>
   )
@@ -47,9 +46,40 @@ function compensationContext(
     return `${fromFirst} e ${toFirst} sono allo stesso livello. Il suggerimento Slate è un accordo TFP — nessun pagamento, il lavoro vale uguale per entrambi.`
   }
   if (fromLevel > toLevel) {
-    return `${fromFirst} (Lv.${fromLevel}) ha più esperienza di te (Lv.${toLevel}). Il suggerimento Slate è che tu paghi per questa collaborazione. Il compenso proposto è:`
+    return `${fromFirst} (Lv.${fromLevel}) ha più esperienza di te (Lv.${toLevel}). Secondo il modello Slate, il meno esperto investe per lavorare con il più esperto. Il compenso proposto è:`
   }
-  return `Hai più esperienza di ${fromFirst} (Lv.${fromLevel} vs Lv.${toLevel}). Il suggerimento Slate è che sia ${fromFirst} a pagare. Il compenso proposto è:`
+  return `Hai più esperienza di ${fromFirst} (Lv.${fromLevel} vs Lv.${toLevel}). Secondo il modello Slate, il meno esperto investe per lavorare con il più esperto. Il compenso proposto è:`
+}
+
+// Interpreta compensation_note dal punto di vista del ricevente
+function CompensationDisplay({ note, isReceiver }: { note: string | null; isReceiver: boolean }) {
+  if (!note) return null
+
+  let style = { border: 'border-neutral-700', bg: '', text: 'text-neutral-100', sub: '' }
+  let subtext: string | null = null
+
+  if (note.startsWith('TFP')) {
+    style = { border: 'border-emerald-500/30', bg: 'bg-emerald-500/[0.08]', text: 'text-emerald-400', sub: 'text-emerald-500/70' }
+  } else if (note.startsWith('Pago io')) {
+    // il proponente paga → per il ricevente è positivo
+    style = isReceiver
+      ? { border: 'border-emerald-500/30', bg: 'bg-emerald-500/[0.08]', text: 'text-emerald-400', sub: 'text-emerald-500/70' }
+      : { border: 'border-blue-500/30', bg: 'bg-blue-500/[0.08]', text: 'text-blue-400', sub: 'text-blue-500/70' }
+    if (isReceiver) subtext = 'Il proponente si offre di pagarti'
+  } else if (note.startsWith('Vengo pagato')) {
+    // il proponente vuole essere pagato → il ricevente deve pagare
+    style = isReceiver
+      ? { border: 'border-amber-500/30', bg: 'bg-amber-500/[0.08]', text: 'text-amber-400', sub: 'text-amber-500/70' }
+      : { border: 'border-blue-500/30', bg: 'bg-blue-500/[0.08]', text: 'text-blue-400', sub: 'text-blue-500/70' }
+    if (isReceiver) subtext = 'Il proponente propone che tu lo/la paghi'
+  }
+
+  return (
+    <div className={`rounded-lg border px-3 py-2.5 ${style.border} ${style.bg}`}>
+      <p className={`text-sm font-semibold ${style.text}`}>{note}</p>
+      {subtext && <p className={`text-xs mt-0.5 ${style.sub}`}>{subtext}</p>}
+    </div>
+  )
 }
 
 export function ProposalReviewModal({ inviteId, currentUserId, onClose }: Props) {
@@ -64,10 +94,12 @@ export function ProposalReviewModal({ inviteId, currentUserId, onClose }: Props)
     getInviteDetails(inviteId).then(({ data, error }) => {
       if (error || !data) { setLoadError(error ?? 'Errore'); return }
       setInvite(data)
-      // Geocoding location per la mappa
       if (data.location) {
+        // Geocoda la seconda riga (indirizzo), o l'unica se non c'è separatore
+        const parts = data.location.split('\n')
+        const addrPart = parts.length > 1 ? parts[1] : parts[0]
         fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(data.location)}&format=json&limit=1`,
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addrPart)}&format=json&limit=1`,
           { headers: { 'Accept-Language': 'it' } }
         )
           .then((r) => r.json())
@@ -105,6 +137,11 @@ export function ProposalReviewModal({ inviteId, currentUserId, onClose }: Props)
   }
 
   const isReceiver = invite?.to_profile.id === currentUserId
+
+  // Parsing location in due parti
+  const locationParts = invite?.location ? invite.location.split('\n') : []
+  const locationDesc = locationParts[0] ?? null
+  const locationAddr = locationParts.length > 1 ? locationParts[1] : null
 
   return (
     <div
@@ -175,8 +212,8 @@ export function ProposalReviewModal({ inviteId, currentUserId, onClose }: Props)
 
           {invite && (
             <>
-              {/* Spiegazione compenso + nota proposta */}
-              <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 px-4 py-3 space-y-2">
+              {/* Compenso */}
+              <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 px-4 py-3 space-y-2.5">
                 <p className="text-xs text-neutral-400 leading-relaxed">
                   {compensationContext(
                     invite.from_profile.full_name, invite.from_profile.level,
@@ -184,9 +221,7 @@ export function ProposalReviewModal({ inviteId, currentUserId, onClose }: Props)
                   )}
                 </p>
                 {invite.compensation_note && (
-                  <p className="text-sm font-semibold text-neutral-100 pt-0.5 border-t border-neutral-800">
-                    {invite.compensation_note}
-                  </p>
+                  <CompensationDisplay note={invite.compensation_note} isReceiver={!!isReceiver} />
                 )}
               </div>
 
@@ -202,7 +237,12 @@ export function ProposalReviewModal({ inviteId, currentUserId, onClose }: Props)
               {invite.location && (
                 <div className="space-y-1.5">
                   <p className="text-[10px] text-neutral-600 uppercase tracking-wider">Location</p>
-                  <p className="text-sm text-neutral-200">{invite.location}</p>
+                  {locationDesc && (
+                    <p className="text-sm font-medium text-neutral-200">{locationDesc}</p>
+                  )}
+                  {locationAddr && (
+                    <p className="text-sm text-neutral-400">{locationAddr}</p>
+                  )}
                   {mapUrl && (
                     <div className="rounded-xl overflow-hidden border border-neutral-800 h-40 mt-1">
                       <iframe

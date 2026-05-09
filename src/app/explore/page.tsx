@@ -11,6 +11,7 @@ interface ExplorePageProps {
   searchParams: Promise<{
     role?: string
     level?: string
+    city?: string
   }>
 }
 
@@ -45,7 +46,15 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
     .slice(0, 2)
     .toUpperCase()
 
-  const { role, level } = await searchParams
+  const { role, level, city } = await searchParams
+
+  // Fetch distinct cities for filter pills
+  const { data: cityRows } = await adminClient
+    .from('profiles')
+    .select('city')
+    .eq('status', 'approved')
+    .not('city', 'is', null)
+  const cities = [...new Set((cityRows ?? []).map((r) => r.city as string).filter(Boolean))].sort()
 
   let query = supabase
     .from('profiles')
@@ -59,6 +68,9 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   }
   if (level) {
     query = query.eq('level', parseInt(level))
+  }
+  if (city) {
+    query = query.eq('city', city)
   }
 
   const { data: profiles } = await query
@@ -103,6 +115,8 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
           <ExploreFilters
             currentRole={role ?? ''}
             currentLevel={level ?? ''}
+            currentCity={city ?? ''}
+            cities={cities}
           />
         </Suspense>
 

@@ -268,6 +268,23 @@ export async function getInviteDetails(inviteId: string): Promise<{ data: Invite
   }
 }
 
+// ── Elimina notifiche lette ───────────────────────────────────────
+
+export async function clearReadNotifications() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Non autenticato.' }
+
+  const adminClient = createAdminClient()
+  const { error } = await adminClient
+    .from('notifications')
+    .delete()
+    .eq('user_id', user.id)
+    .eq('read', true)
+
+  return { error: error?.message ?? null }
+}
+
 // ── Segna notifica come letta ─────────────────────────────────────
 
 export async function markNotificationRead(notificationId: string) {

@@ -15,7 +15,6 @@ interface Props {
   currentUserId: string
 }
 
-// Group slots by date
 function groupByDate(slots: TourSlotWithBooker[]): Map<string, TourSlotWithBooker[]> {
   const map = new Map<string, TourSlotWithBooker[]>()
   for (const slot of slots) {
@@ -26,20 +25,37 @@ function groupByDate(slots: TourSlotWithBooker[]): Map<string, TourSlotWithBooke
   return map
 }
 
+// Trim seconds from "HH:mm:ss" → "HH:mm", leave "HH:mm" as-is
+function fmt(time: string) {
+  return time.slice(0, 5)
+}
+
 const STATUS_STYLES: Record<SlotStatus | 'occupied', string> = {
-  free: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20',
-  booked: 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20',
-  confirmed: 'border-blue-500/40 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20',
-  cancelled: 'border-neutral-700 bg-neutral-900 text-neutral-600',
-  occupied: 'border-red-500/30 bg-red-500/10 text-red-400',
+  free:      'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 active:bg-emerald-500/30',
+  booked:    'border-amber-500/40  bg-amber-500/10  text-amber-300  active:bg-amber-500/30',
+  confirmed: 'border-blue-500/40   bg-blue-500/10   text-blue-300   active:bg-blue-500/30',
+  cancelled: 'border-neutral-800   bg-neutral-900   text-neutral-600',
+  occupied:  'border-red-500/30    bg-red-500/10    text-red-400',
 }
 
 const STATUS_LABEL: Record<SlotStatus, string> = {
-  free: 'Libero',
-  booked: 'Prenotato',
+  free:      'Libero',
+  booked:    'Prenotato',
   confirmed: 'Confermato',
   cancelled: 'Annullato',
 }
+
+const LEGEND_CREATOR: { status: SlotStatus | 'occupied'; label: string }[] = [
+  { status: 'free',      label: 'Libero' },
+  { status: 'booked',    label: 'Prenotato' },
+  { status: 'confirmed', label: 'Confermato' },
+  { status: 'cancelled', label: 'Annullato' },
+]
+
+const LEGEND_VISITOR: { status: SlotStatus | 'occupied'; label: string }[] = [
+  { status: 'free',     label: 'Disponibile' },
+  { status: 'occupied', label: 'Occupato' },
+]
 
 export function TourCalendar({ slots, isCreator, tourId, creatorId, tourStatus, currentUserId }: Props) {
   const [selectedSlot, setSelectedSlot] = useState<TourSlotWithBooker | null>(null)
@@ -48,113 +64,139 @@ export function TourCalendar({ slots, isCreator, tourId, creatorId, tourStatus, 
   const dates = Array.from(grouped.keys()).sort()
 
   if (dates.length === 0) {
-    return (
-      <div className="py-12 text-center text-neutral-500 text-sm">
-        Nessuno slot disponibile.
-      </div>
-    )
-  }
-
-  function handleSlotClick(slot: TourSlotWithBooker) {
-    // Photographers can only interact with free slots or their own booked slots
-    if (!isCreator) {
-      if (slot.status === 'cancelled') return
-      if (slot.status === 'confirmed') return
-      if (slot.status === 'booked' && slot.booked_by !== currentUserId) return
-    }
-    setSelectedSlot(slot)
+    return <div className="py-12 text-center text-neutral-500 text-sm">Nessuno slot disponibile.</div>
   }
 
   function isClickable(slot: TourSlotWithBooker): boolean {
     if (tourStatus !== 'active') return false
     if (isCreator) return slot.status !== 'cancelled'
-    // Photographer: can book free slots or view their own bookings
     if (slot.status === 'free') return true
     if (slot.status === 'booked' && slot.booked_by === currentUserId) return true
     return false
   }
 
-  // Legend items (different per role)
-  const legendItems = isCreator
-    ? [
-        { status: 'free' as SlotStatus, label: 'Libero' },
-        { status: 'booked' as SlotStatus, label: 'Prenotato' },
-        { status: 'confirmed' as SlotStatus, label: 'Confermato' },
-        { status: 'cancelled' as SlotStatus, label: 'Annullato' },
-      ]
-    : [
-        { status: 'free' as SlotStatus | 'occupied', label: 'Prenota' },
-        { status: 'occupied' as SlotStatus | 'occupied', label: 'Occupato' },
-      ]
+  function getDisplayStatus(slot: TourSlotWithBooker): SlotStatus | 'occupied' {
+    if (!isCreator && (
+      (slot.status === 'booked' && slot.booked_by !== currentUserId) ||
+      slot.status === 'confirmed'
+    )) return 'occupied'
+    return slot.status
+  }
+
+  function getSubLabel(slot: TourSlotWithBooker): string {
+    if (isCreator) return STATUS_LABEL[slot.status]
+    if (slot.status === 'free') return `€${slot.total_amount}`
+    if (slot.status === 'booked' && slot.booked_by === currentUserId) return 'Tua prenotaz.'
+    return 'Occupato'
+  }
+
+  const legend = isCreator ? LEGEND_CREATOR : LEGEND_VISITOR
 
   return (
     <>
       {/* Legend */}
-      <div className="flex flex-wrap gap-3 mb-4">
-        {legendItems.map(({ status, label }) => (
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-5">
+        {legend.map(({ status, label }) => (
           <div key={status} className="flex items-center gap-1.5">
-            <div className={['w-3 h-3 rounded-sm border', STATUS_STYLES[status]].join(' ')} />
+            <div className={['w-2.5 h-2.5 rounded-sm border', STATUS_STYLES[status]].join(' ')} />
             <span className="text-xs text-neutral-500">{label}</span>
           </div>
         ))}
       </div>
 
-      {/* Days */}
-      <div className="space-y-6">
-        {dates.map((date) => {
-          const daySlots = grouped.get(date)!
-          const parsed = parseISO(date)
+      {/* Week-view grid — 3 columns visible, horizontal scroll for more */}
+      <div className="overflow-x-auto pb-2 -mx-4 px-4">
+        <div
+          className="flex gap-2"
+          style={{ minWidth: `${dates.length * (dates.length <= 3 ? 0 : 152)}px` }}
+        >
+          {dates.map((date) => {
+            const daySlots = grouped.get(date)!
+            const parsed = parseISO(date)
+            const morning = daySlots.filter((s) => fmt(s.start_time) < '12:00')
+            const afternoon = daySlots.filter((s) => fmt(s.start_time) >= '12:00')
 
-          return (
-            <div key={date}>
-              <p className="text-sm font-medium text-neutral-300 mb-2 capitalize">
-                {format(parsed, 'EEEE d MMMM', { locale: it })}
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {daySlots.map((slot) => {
-                  const isOccupiedForPhotographer =
-                    !isCreator &&
-                    ((slot.status === 'booked' && slot.booked_by !== currentUserId) ||
-                      slot.status === 'confirmed')
-                  const displayStatus: SlotStatus | 'occupied' = isOccupiedForPhotographer
-                    ? 'occupied'
-                    : slot.status
+            return (
+              <div
+                key={date}
+                className="flex flex-col min-w-0 flex-1"
+                style={dates.length > 3 ? { minWidth: '148px', maxWidth: '148px' } : undefined}
+              >
+                {/* Day header */}
+                <div className="mb-2 pb-2 border-b border-neutral-800">
+                  <p className="text-[11px] text-neutral-500 capitalize">
+                    {format(parsed, 'EEE', { locale: it })}
+                  </p>
+                  <p className="text-sm font-semibold">
+                    {format(parsed, 'd MMM', { locale: it })}
+                  </p>
+                </div>
 
-                  const clickable = isClickable(slot)
+                {/* Morning */}
+                {morning.length > 0 && (
+                  <div className="space-y-1.5 mb-3">
+                    <p className="text-[10px] text-neutral-600 uppercase tracking-wide font-medium">Mattina</p>
+                    {morning.map((slot) => {
+                      const display = getDisplayStatus(slot)
+                      const clickable = isClickable(slot)
+                      return (
+                        <button
+                          key={slot.id}
+                          onClick={() => clickable && setSelectedSlot(slot)}
+                          disabled={!clickable}
+                          className={[
+                            'w-full rounded-lg border px-2 py-1.5 text-left transition-colors',
+                            STATUS_STYLES[display],
+                            clickable ? 'cursor-pointer hover:opacity-90' : 'cursor-default opacity-50',
+                          ].join(' ')}
+                        >
+                          <p className="text-xs font-semibold tabular-nums leading-none">
+                            {fmt(slot.start_time)}–{fmt(slot.end_time)}
+                          </p>
+                          <p className="text-[10px] mt-0.5 opacity-75 leading-none">
+                            {getSubLabel(slot)}
+                          </p>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
 
-                  return (
-                    <button
-                      key={slot.id}
-                      onClick={() => clickable && handleSlotClick(slot)}
-                      disabled={!clickable}
-                      className={[
-                        'rounded-xl border px-3 py-2.5 text-left transition-colors',
-                        STATUS_STYLES[displayStatus],
-                        clickable ? 'cursor-pointer' : 'cursor-default opacity-60',
-                      ].join(' ')}
-                    >
-                      <p className="text-sm font-semibold tabular-nums">
-                        {slot.start_time} – {slot.end_time}
-                      </p>
-                      <p className="text-[11px] mt-0.5 opacity-80">
-                        {isCreator
-                          ? STATUS_LABEL[slot.status]
-                          : slot.status === 'free'
-                          ? `€${slot.total_amount}`
-                          : slot.status === 'booked' && slot.booked_by === currentUserId
-                          ? 'La tua prenotazione'
-                          : 'Occupato'}
-                      </p>
-                    </button>
-                  )
-                })}
+                {/* Afternoon */}
+                {afternoon.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] text-neutral-600 uppercase tracking-wide font-medium">Pomeriggio</p>
+                    {afternoon.map((slot) => {
+                      const display = getDisplayStatus(slot)
+                      const clickable = isClickable(slot)
+                      return (
+                        <button
+                          key={slot.id}
+                          onClick={() => clickable && setSelectedSlot(slot)}
+                          disabled={!clickable}
+                          className={[
+                            'w-full rounded-lg border px-2 py-1.5 text-left transition-colors',
+                            STATUS_STYLES[display],
+                            clickable ? 'cursor-pointer hover:opacity-90' : 'cursor-default opacity-50',
+                          ].join(' ')}
+                        >
+                          <p className="text-xs font-semibold tabular-nums leading-none">
+                            {fmt(slot.start_time)}–{fmt(slot.end_time)}
+                          </p>
+                          <p className="text-[10px] mt-0.5 opacity-75 leading-none">
+                            {getSubLabel(slot)}
+                          </p>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
 
-      {/* Modal */}
       {selectedSlot && (
         <SlotModal
           slot={selectedSlot}

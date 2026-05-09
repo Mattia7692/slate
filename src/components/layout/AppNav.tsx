@@ -16,7 +16,7 @@ interface AppNavProps {
 const MAIN_TABS = [
   { label: 'Home', href: '/dashboard' },
   { label: 'Esplora', href: '/explore' },
-  { label: 'Visioni', href: '/bacheca' },
+  { label: 'Bacheca', href: '/bacheca' },
 ]
 
 export function AppNav({ userInitials, userId, avatarUrl, notifications }: AppNavProps) {

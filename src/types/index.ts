@@ -212,6 +212,65 @@ export interface ConversationWithProfiles extends Conversation {
   participant_2_profile: Pick<Profile, 'id' | 'full_name' | 'role' | 'avatar_url' | 'level'>
 }
 
+export type TourStatus = 'open' | 'closed'
+export type SlotStatus = 'free' | 'booked' | 'confirmed' | 'cancelled'
+
+export interface Tour {
+  id: string
+  creator_id: string
+  title: string
+  city: string
+  has_location: boolean
+  location_description: string | null
+  start_date: string
+  end_date: string
+  hourly_rate: number
+  cover_url: string | null
+  status: TourStatus
+  genre_ids: string[]
+  slot_duration_hours: number
+  morning_slots: number
+  afternoon_slots: number
+  morning_start: string
+  lunch_start: string
+  lunch_end: string
+  afternoon_end: string
+  break_minutes: number
+  created_at: string
+}
+
+export interface TourWithCreator extends Tour {
+  creator: Pick<Profile, 'id' | 'full_name' | 'role' | 'avatar_url' | 'level'>
+  images: TourImage[]
+}
+
+export interface TourImage {
+  id: string
+  tour_id: string
+  image_url: string
+  order_index: number
+  created_at: string
+}
+
+export interface TourSlot {
+  id: string
+  tour_id: string
+  slot_date: string
+  start_time: string
+  end_time: string
+  duration_hours: number
+  hourly_rate: number
+  total_amount: number
+  status: SlotStatus
+  booked_by: string | null
+  booked_at: string | null
+  created_at: string
+}
+
+export interface TourSlotWithBooker extends TourSlot {
+  booker: Pick<Profile, 'id' | 'full_name' | 'role' | 'avatar_url' | 'level'> | null
+}
+
 export interface Genre {
   id: string
   slug: string

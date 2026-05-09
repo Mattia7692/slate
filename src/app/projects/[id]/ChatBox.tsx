@@ -16,10 +16,12 @@ export function ChatBox({ projectId, currentUserId, initialMessages }: ChatBoxPr
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const supabase = createClient()
+  // Stable client ref — avoids recreating the client on every render
+  const supabaseRef = useRef(createClient())
 
   // Realtime subscription
   useEffect(() => {
+    const supabase = supabaseRef.current
     const channel = supabase
       .channel(`project-chat-${projectId}`)
       .on(
@@ -31,7 +33,6 @@ export function ChatBox({ projectId, currentUserId, initialMessages }: ChatBoxPr
           filter: `project_id=eq.${projectId}`,
         },
         async (payload) => {
-          // Fetch il messaggio completo con il sender
           const { data } = await supabase
             .from('messages')
             .select('*, sender:profiles!messages_sender_id_fkey(id, full_name, role)')
@@ -40,7 +41,6 @@ export function ChatBox({ projectId, currentUserId, initialMessages }: ChatBoxPr
 
           if (data) {
             setMessages((prev) => {
-              // Evita duplicati
               if (prev.some((m) => m.id === data.id)) return prev
               return [...prev, data as MessageWithSender]
             })
@@ -50,7 +50,7 @@ export function ChatBox({ projectId, currentUserId, initialMessages }: ChatBoxPr
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [projectId, supabase])
+  }, [projectId])
 
   // Scroll to bottom su nuovi messaggi
   useEffect(() => {
@@ -59,9 +59,10 @@ export function ChatBox({ projectId, currentUserId, initialMessages }: ChatBoxPr
 
   async function handleSend() {
     if (!text.trim() || sending) return
+    const content = text.trim()
     setSending(true)
     setText('')
-    await sendMessage(projectId, text)
+    await sendMessage(projectId, content)
     setSending(false)
   }
 

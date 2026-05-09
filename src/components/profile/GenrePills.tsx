@@ -25,7 +25,7 @@ export function GenrePills({ genres, selected, onToggle }: GenrePillsProps) {
                 : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200',
             ].join(' ')}
           >
-            {g.name}
+            {g.label}
           </button>
         )
       })}

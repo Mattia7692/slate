@@ -22,8 +22,8 @@ export default async function OnboardingPage() {
   const adminClient = createAdminClient()
   const { data: rawGenres } = await adminClient
     .from('genres')
-    .select('id, name')
-    .order('name')
+    .select('id, slug, label, order_index')
+    .order('order_index')
 
   const genres = (rawGenres ?? []) as Genre[]
 

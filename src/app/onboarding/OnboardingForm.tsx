@@ -35,7 +35,7 @@ const INITIAL_STATE: FormState = {
 const STEPS = ['Ruolo', 'Generi', 'Profilo', 'Foto'] as const
 const PORTFOLIO_MIN = 3
 const PORTFOLIO_MAX = 10
-const STILL_LIFE_NAME = 'Still life / Product'
+const STILL_LIFE_LABEL = 'Still life / Product'
 
 // ============================================================
 // Componente principale
@@ -74,7 +74,7 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
 
   // Generi visibili in base al ruolo
   const visibleGenres = form.role === 'model'
-    ? genres.filter((g) => g.name !== STILL_LIFE_NAME)
+    ? genres.filter((g) => g.label !== STILL_LIFE_LABEL)
     : genres
 
   function toggleGenre(id: string) {

@@ -214,7 +214,9 @@ export interface ConversationWithProfiles extends Conversation {
 
 export interface Genre {
   id: string
-  name: string
+  slug: string
+  label: string
+  order_index: number
 }
 
 export interface ProfileGenre {

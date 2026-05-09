@@ -7,7 +7,7 @@ export default async function OnboardingPreviewPage() {
   await requireAdmin()
 
   const adminClient = createAdminClient()
-  const { data: rawGenres } = await adminClient.from('genres').select('id, name').order('name')
+  const { data: rawGenres } = await adminClient.from('genres').select('id, slug, label, order_index').order('order_index')
   const genres = (rawGenres ?? []) as Genre[]
 
   return (

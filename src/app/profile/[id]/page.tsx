@@ -71,7 +71,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       .order('created_at', { ascending: false }),
     adminClient
       .from('profile_genres')
-      .select('genre_id, genres(id, name)')
+      .select('genre_id, genres(id, slug, label, order_index)')
       .eq('profile_id', id),
   ])
 
@@ -149,7 +149,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 key={g.id}
                 className="rounded-full border border-neutral-700 bg-neutral-900 px-3 py-1 text-xs text-neutral-400"
               >
-                {g.name}
+                {g.label}
               </span>
             ))}
           </div>

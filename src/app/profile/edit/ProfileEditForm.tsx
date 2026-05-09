@@ -12,7 +12,7 @@ import { GenrePills } from '@/components/profile/GenrePills'
 import type { Profile, PortfolioItem, Genre } from '@/types'
 import type { PhotoExif } from '@/lib/exif'
 
-const STILL_LIFE_NAME = 'Still life / Product'
+const STILL_LIFE_LABEL = 'Still life / Product'
 
 interface Props {
   profile: Profile
@@ -32,7 +32,7 @@ export function ProfileEditForm({ profile, portfolioItems: initialItems, oldestP
   const [isPending, startTransition] = useTransition()
 
   const visibleGenres = profile.role === 'model'
-    ? genres.filter((g) => g.name !== STILL_LIFE_NAME)
+    ? genres.filter((g) => g.label !== STILL_LIFE_LABEL)
     : genres
 
   function toggleGenre(id: string) {

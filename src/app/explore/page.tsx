@@ -50,7 +50,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   // Fetch distinct cities + all genres in parallelo
   const [{ data: cityRows }, { data: rawGenres }] = await Promise.all([
     adminClient.from('profiles').select('city').eq('status', 'approved').not('city', 'is', null),
-    adminClient.from('genres').select('id, name').order('name'),
+    adminClient.from('genres').select('id, slug, label, order_index').order('order_index'),
   ])
   const cities = [...new Set((cityRows ?? []).map((r) => r.city as string).filter(Boolean))].sort()
   const genres = (rawGenres ?? []) as Genre[]

@@ -131,7 +131,7 @@ export async function approveBrief(projectId: string) {
   const adminClient = createAdminClient()
   await Promise.all([
     adminClient.from('briefs').update({ [receiverSignField]: now }).eq('project_id', projectId),
-    supabase.from('projects').update({ status: 'brief_signed' }).eq('id', projectId),
+    adminClient.from('projects').update({ status: 'brief_signed' }).eq('id', projectId),
   ])
 
   // Notifica al proponente

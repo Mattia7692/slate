@@ -129,10 +129,10 @@ export default async function TourDetailPage({ params }: Props) {
         </div>
 
         {/* Location */}
-        {tour.has_location && tour.location_description && (
+        {tour.location_available && tour.location && (
           <div className="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3">
             <p className="text-[11px] text-neutral-500 mb-1">Location disponibile</p>
-            <p className="text-sm text-neutral-300">{tour.location_description}</p>
+            <p className="text-sm text-neutral-300">{tour.location}</p>
           </div>
         )}
 

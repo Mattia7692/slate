@@ -220,8 +220,8 @@ export interface Tour {
   creator_id: string
   title: string
   city: string
-  has_location: boolean
-  location_description: string | null
+  location_available: boolean
+  location: string | null
   start_date: string
   end_date: string
   hourly_rate: number

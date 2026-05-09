@@ -93,8 +93,8 @@ function generateSlots(
 export interface CreateTourPayload {
   title: string
   city: string
-  has_location: boolean
-  location_description: string | null
+  location_available: boolean
+  location: string | null
   start_date: string
   end_date: string
   hourly_rate: number
@@ -125,8 +125,8 @@ export async function createTour(payload: CreateTourPayload) {
       creator_id: user.id,
       title: payload.title.trim(),
       city: payload.city.trim(),
-      has_location: payload.has_location,
-      location_description: payload.has_location ? (payload.location_description?.trim() ?? null) : null,
+      location_available: payload.location_available,
+      location: payload.location_available ? (payload.location?.trim() ?? null) : null,
       start_date: payload.start_date,
       end_date: payload.end_date,
       hourly_rate: payload.hourly_rate,

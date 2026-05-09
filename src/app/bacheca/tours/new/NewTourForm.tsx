@@ -18,8 +18,8 @@ const STEPS = ['Info base', 'Slot', 'Generi', 'Foto'] as const
 interface Step1 {
   title: string
   city: string
-  has_location: boolean
-  location_description: string
+  location_available: boolean
+  location: string
   start_date: string
   end_date: string
   hourly_rate: string
@@ -39,8 +39,8 @@ interface Step2 {
 const DEFAULT_S1: Step1 = {
   title: '',
   city: '',
-  has_location: false,
-  location_description: '',
+  location_available: false,
+  location: '',
   start_date: '',
   end_date: '',
   hourly_rate: '',
@@ -160,8 +160,8 @@ export function NewTourForm({ genres }: Props) {
       const result = await createTour({
         title: s1.title.trim(),
         city: s1.city.trim(),
-        has_location: s1.has_location,
-        location_description: s1.has_location ? s1.location_description.trim() || null : null,
+        location_available: s1.location_available,
+        location: s1.location_available ? s1.location.trim() || null : null,
         start_date: s1.start_date,
         end_date: s1.end_date,
         hourly_rate: parseInt(s1.hourly_rate),
@@ -228,23 +228,23 @@ export function NewTourForm({ genres }: Props) {
           <div className="space-y-2">
             <label className="flex items-center gap-3 cursor-pointer group">
               <div
-                onClick={() => set1('has_location', !s1.has_location)}
+                onClick={() => set1('location_available', !s1.location_available)}
                 className={[
                   'w-10 h-6 rounded-full transition-colors relative shrink-0',
-                  s1.has_location ? 'bg-white' : 'bg-neutral-700',
+                  s1.location_available ? 'bg-white' : 'bg-neutral-700',
                 ].join(' ')}
               >
                 <div className={[
                   'absolute top-1 w-4 h-4 bg-neutral-900 rounded-full transition-transform',
-                  s1.has_location ? 'translate-x-5' : 'translate-x-1',
+                  s1.location_available ? 'translate-x-5' : 'translate-x-1',
                 ].join(' ')} />
               </div>
               <span className="text-sm text-neutral-300">Ho una location disponibile</span>
             </label>
-            {s1.has_location && (
+            {s1.location_available && (
               <textarea
-                value={s1.location_description}
-                onChange={(e) => set1('location_description', e.target.value)}
+                value={s1.location}
+                onChange={(e) => set1('location', e.target.value)}
                 placeholder="Descrivi la location (studio, spazio outdoor, indirizzo…)"
                 rows={2}
                 className={fieldCls + ' resize-none'}

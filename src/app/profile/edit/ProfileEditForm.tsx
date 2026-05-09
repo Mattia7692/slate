@@ -8,22 +8,38 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { ProfileAvatarUpload } from '@/components/profile/ProfileAvatarUpload'
 import { OldestPhotoSection } from './OldestPhotoSection'
-import type { Profile, PortfolioItem } from '@/types'
+import { GenrePills } from '@/components/profile/GenrePills'
+import type { Profile, PortfolioItem, Genre } from '@/types'
 import type { PhotoExif } from '@/lib/exif'
+
+const STILL_LIFE_NAME = 'Still life / Product'
 
 interface Props {
   profile: Profile
   portfolioItems: PortfolioItem[]
   oldestPhotoSignedUrl: string | null
   oldestPhotoExif: PhotoExif | null
+  genres: Genre[]
+  initialGenreIds: string[]
 }
 
-export function ProfileEditForm({ profile, portfolioItems: initialItems, oldestPhotoSignedUrl, oldestPhotoExif }: Props) {
+export function ProfileEditForm({ profile, portfolioItems: initialItems, oldestPhotoSignedUrl, oldestPhotoExif, genres, initialGenreIds }: Props) {
   const [portfolioItems, setPortfolioItems] = useState(initialItems)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(profile.avatar_url ?? null)
+  const [selectedGenreIds, setSelectedGenreIds] = useState<string[]>(initialGenreIds)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+
+  const visibleGenres = profile.role === 'model'
+    ? genres.filter((g) => g.name !== STILL_LIFE_NAME)
+    : genres
+
+  function toggleGenre(id: string) {
+    setSelectedGenreIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    )
+  }
 
   const supabase = createClient()
 
@@ -93,8 +109,9 @@ export function ProfileEditForm({ profile, portfolioItems: initialItems, oldestP
         </div>
       )}
 
-      {/* Campo hidden avatar_url */}
+      {/* Campi hidden */}
       <input type="hidden" name="avatar_url" value={avatarUrl ?? ''} />
+      <input type="hidden" name="genre_ids" value={selectedGenreIds.join(',')} />
 
       {/* Avatar */}
       <div className="flex items-center gap-4">
@@ -156,6 +173,19 @@ export function ProfileEditForm({ profile, portfolioItems: initialItems, oldestP
         initialDate={profile.oldest_photo_date ?? null}
         initialExif={oldestPhotoExif}
       />
+
+      {/* Generi */}
+      <section className="space-y-4">
+        <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Generi</h2>
+        <GenrePills
+          genres={visibleGenres}
+          selected={selectedGenreIds}
+          onToggle={toggleGenre}
+        />
+        {selectedGenreIds.length === 0 && (
+          <p className="text-xs text-neutral-600">Seleziona almeno un genere.</p>
+        )}
+      </section>
 
       {/* Portfolio */}
       <section className="space-y-4">

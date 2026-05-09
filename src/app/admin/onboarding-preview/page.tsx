@@ -1,8 +1,14 @@
 import { requireAdmin } from '@/lib/admin'
+import { createClient } from '@/lib/supabase/server'
 import { OnboardingForm } from '@/app/onboarding/OnboardingForm'
+import type { Genre } from '@/types'
 
 export default async function OnboardingPreviewPage() {
   await requireAdmin()
+
+  const supabase = await createClient()
+  const { data: rawGenres } = await supabase.from('genres').select('id, name').order('name')
+  const genres = (rawGenres ?? []) as Genre[]
 
   return (
     <div className="max-w-lg mx-auto">
@@ -12,7 +18,7 @@ export default async function OnboardingPreviewPage() {
           Visualizza il flusso di registrazione come lo vede un nuovo utente.
         </p>
       </div>
-      <OnboardingForm preview />
+      <OnboardingForm preview genres={genres} />
     </div>
   )
 }

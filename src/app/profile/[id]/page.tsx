@@ -10,7 +10,7 @@ import { RoleBadge } from '@/components/profile/RoleBadge'
 import { AppNav } from '@/components/layout/AppNav'
 import { ProposeModal } from './ProposeModal'
 import { MessageButton } from './MessageButton'
-import type { ReviewWithReviewer, Notification } from '@/types'
+import type { ReviewWithReviewer, Notification, Genre } from '@/types'
 
 interface ProfilePageProps {
   params: Promise<{ id: string }>
@@ -57,8 +57,8 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const notifications = (rawNotifications ?? []) as Notification[]
   const userInitials = (myProfile?.full_name ?? '').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
 
-  // Portfolio, recensioni in parallelo
-  const [{ data: portfolioItems }, { data: reviews }] = await Promise.all([
+  // Portfolio, recensioni, generi in parallelo
+  const [{ data: portfolioItems }, { data: reviews }, { data: profileGenreRows }] = await Promise.all([
     supabase
       .from('portfolio_items')
       .select('*')
@@ -69,7 +69,19 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       .select('*, reviewer:profiles!reviews_reviewer_id_fkey(id, full_name, role)')
       .eq('reviewee_id', id)
       .order('created_at', { ascending: false }),
+    adminClient
+      .from('profile_genres')
+      .select('genre_id, genres(id, name)')
+      .eq('profile_id', id),
   ])
+
+  const profileGenres = (profileGenreRows ?? [])
+    .map((r) => {
+      const g = r.genres as unknown
+      if (!g || typeof g !== 'object' || Array.isArray(g)) return null
+      return g as Genre
+    })
+    .filter((g): g is Genre => g !== null)
 
   const avgRating =
     reviews && reviews.length > 0
@@ -128,6 +140,20 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             </div>
           </div>
         </div>
+
+        {/* Generi */}
+        {profileGenres.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {profileGenres.map((g) => (
+              <span
+                key={g.id}
+                className="rounded-full border border-neutral-700 bg-neutral-900 px-3 py-1 text-xs text-neutral-400"
+              >
+                {g.name}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Bio */}
         {profile.bio && (

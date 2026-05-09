@@ -5,13 +5,14 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { ProfileCard } from '@/components/profile/ProfileCard'
 import { ExploreFilters } from './ExploreFilters'
 import { AppNav } from '@/components/layout/AppNav'
-import type { Profile, PortfolioItem, Notification } from '@/types'
+import type { Profile, PortfolioItem, Notification, Genre } from '@/types'
 
 interface ExplorePageProps {
   searchParams: Promise<{
     role?: string
     level?: string
     city?: string
+    genre?: string
   }>
 }
 
@@ -46,15 +47,15 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
     .slice(0, 2)
     .toUpperCase()
 
-  const { role, level, city } = await searchParams
-
-  // Fetch distinct cities for filter pills
-  const { data: cityRows } = await adminClient
-    .from('profiles')
-    .select('city')
-    .eq('status', 'approved')
-    .not('city', 'is', null)
+  // Fetch distinct cities + all genres in parallelo
+  const [{ data: cityRows }, { data: rawGenres }] = await Promise.all([
+    adminClient.from('profiles').select('city').eq('status', 'approved').not('city', 'is', null),
+    adminClient.from('genres').select('id, name').order('name'),
+  ])
   const cities = [...new Set((cityRows ?? []).map((r) => r.city as string).filter(Boolean))].sort()
+  const genres = (rawGenres ?? []) as Genre[]
+
+  const { role, level, city, genre } = await searchParams
 
   let query = supabase
     .from('profiles')
@@ -71,6 +72,21 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   }
   if (city) {
     query = query.eq('city', city)
+  }
+
+  // Filtro per genere: due passi
+  if (genre) {
+    const { data: pgRows } = await adminClient
+      .from('profile_genres')
+      .select('profile_id')
+      .eq('genre_id', genre)
+    const idsWithGenre = (pgRows ?? []).map((r) => r.profile_id as string)
+    if (idsWithGenre.length === 0) {
+      // Nessun profilo con questo genere — forza risultato vuoto
+      query = query.in('id', ['00000000-0000-0000-0000-000000000000'])
+    } else {
+      query = query.in('id', idsWithGenre)
+    }
   }
 
   const { data: profiles } = await query
@@ -116,7 +132,9 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
             currentRole={role ?? ''}
             currentLevel={level ?? ''}
             currentCity={city ?? ''}
+            currentGenre={genre ?? ''}
             cities={cities}
+            genres={genres}
           />
         </Suspense>
 

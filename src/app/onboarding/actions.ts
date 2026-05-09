@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { computeSeniorityBonus, yearsFromStartYear } from '@/lib/xp'
 import type { UserRole } from '@/types'
 
@@ -17,6 +18,7 @@ interface CreateProfilePayload {
   oldest_photo_exif: Record<string, unknown> | null
   avatar_url: string | null
   portfolio_urls: string[]
+  genre_ids: string[]
 }
 
 export async function createProfile(payload: CreateProfilePayload) {
@@ -63,6 +65,8 @@ export async function createProfile(payload: CreateProfilePayload) {
     return { error: profileError.message }
   }
 
+  const adminClient = createAdminClient()
+
   // Inserisci le foto del portfolio
   if (payload.portfolio_urls.length > 0) {
     const portfolioItems = payload.portfolio_urls.map((url, index) => ({
@@ -70,8 +74,14 @@ export async function createProfile(payload: CreateProfilePayload) {
       image_url: url,
       order_index: index,
     }))
-
     await supabase.from('portfolio_items').insert(portfolioItems)
+  }
+
+  // Salva generi fotografici
+  if (payload.genre_ids.length > 0) {
+    await adminClient.from('profile_genres').insert(
+      payload.genre_ids.map((genre_id) => ({ profile_id: user.id, genre_id }))
+    )
   }
 
   // Logga il bonus anzianità se > 0

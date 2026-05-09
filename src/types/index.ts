@@ -212,6 +212,17 @@ export interface ConversationWithProfiles extends Conversation {
   participant_2_profile: Pick<Profile, 'id' | 'full_name' | 'role' | 'avatar_url' | 'level'>
 }
 
+export interface Genre {
+  id: string
+  name: string
+}
+
+export interface ProfileGenre {
+  id: string
+  profile_id: string
+  genre_id: string
+}
+
 export interface XpTransaction {
   id: string
   profile_id: string

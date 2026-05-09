@@ -6,8 +6,9 @@ import { createClient } from '@/lib/supabase/client'
 import { createProfile } from './actions'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { GenrePills } from '@/components/profile/GenrePills'
 import { computeSeniorityBonus, yearsFromStartYear } from '@/lib/xp'
-import type { UserRole } from '@/types'
+import type { UserRole, Genre } from '@/types'
 
 // ============================================================
 // Tipi locali
@@ -31,17 +32,19 @@ const INITIAL_STATE: FormState = {
   career_start_year: null,
 }
 
-const STEPS = ['Ruolo', 'Profilo', 'Foto'] as const
+const STEPS = ['Ruolo', 'Generi', 'Profilo', 'Foto'] as const
 const PORTFOLIO_MIN = 3
 const PORTFOLIO_MAX = 10
+const STILL_LIFE_NAME = 'Still life / Product'
 
 // ============================================================
 // Componente principale
 // ============================================================
 
-export function OnboardingForm({ preview = false }: { preview?: boolean }) {
+export function OnboardingForm({ preview = false, genres }: { preview?: boolean; genres: Genre[] }) {
   const [step, setStep] = useState(0)
   const [form, setForm] = useState<FormState>(INITIAL_STATE)
+  const [selectedGenreIds, setSelectedGenreIds] = useState<string[]>([])
 
   // Foto più vecchia
   const [oldestPhotoFile, setOldestPhotoFile] = useState<File | null>(null)
@@ -67,6 +70,17 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  // Generi visibili in base al ruolo
+  const visibleGenres = form.role === 'model'
+    ? genres.filter((g) => g.name !== STILL_LIFE_NAME)
+    : genres
+
+  function toggleGenre(id: string) {
+    setSelectedGenreIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    )
   }
 
   // --- Upload helpers ---
@@ -119,8 +133,8 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
 
   function canProceed(): boolean {
     if (step === 0) return form.role !== null
-    if (step === 1) return form.full_name.trim().length >= 2
-    // Step 2: tutte e tre le sezioni devono essere complete
+    if (step === 1) return selectedGenreIds.length >= 1
+    if (step === 2) return form.full_name.trim().length >= 2
     return oldestPhotoFile !== null && avatarFile !== null && portfolioFiles.length >= PORTFOLIO_MIN
   }
 
@@ -174,6 +188,10 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
         portfolioUrls.push(url)
       }
 
+      // Filtra genre_ids validi per il ruolo corrente (sicurezza lato client)
+      const validGenreIds = new Set(visibleGenres.map((g) => g.id))
+      const genreIds = selectedGenreIds.filter((id) => validGenreIds.has(id))
+
       const result = await createProfile({
         role: form.role!,
         full_name: form.full_name,
@@ -186,6 +204,7 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
         oldest_photo_exif: oldestPhotoExif,
         avatar_url: avatarUrl,
         portfolio_urls: portfolioUrls,
+        genre_ids: genreIds,
       })
 
       if (result?.error) {
@@ -213,6 +232,7 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
             setPreviewDone(false)
             setStep(0)
             setForm(INITIAL_STATE)
+            setSelectedGenreIds([])
             setOldestPhotoFile(null)
             setOldestPhotoPreview(null)
             setAvatarFile(null)
@@ -298,8 +318,28 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
         </div>
       )}
 
-      {/* ---- STEP 1: Profilo ---- */}
+      {/* ---- STEP 1: Generi ---- */}
       {step === 1 && (
+        <div className="space-y-5">
+          <div>
+            <h2 className="text-lg font-medium">I tuoi generi</h2>
+            <p className="text-sm text-neutral-400 mt-1">
+              Seleziona i generi in cui lavori. Puoi sceglierne più di uno.
+            </p>
+          </div>
+          <GenrePills
+            genres={visibleGenres}
+            selected={selectedGenreIds}
+            onToggle={toggleGenre}
+          />
+          {selectedGenreIds.length === 0 && (
+            <p className="text-xs text-neutral-600">Seleziona almeno un genere per continuare.</p>
+          )}
+        </div>
+      )}
+
+      {/* ---- STEP 2: Profilo ---- */}
+      {step === 2 && (
         <div className="space-y-4">
           <h2 className="text-lg font-medium">Il tuo profilo</h2>
 
@@ -370,8 +410,8 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
         </div>
       )}
 
-      {/* ---- STEP 2: Foto ---- */}
-      {step === 2 && (
+      {/* ---- STEP 3: Foto ---- */}
+      {step === 3 && (
         <div className="space-y-8">
 
           {/* SEZIONE 1 — Foto più vecchia */}
@@ -472,7 +512,6 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
               </p>
             </div>
 
-            {/* Contatore */}
             <div className="flex items-center justify-between">
               <span
                 className={[
@@ -518,7 +557,6 @@ export function OnboardingForm({ preview = false }: { preview?: boolean }) {
               )}
             </div>
 
-            {/* Tooltip blocco submit */}
             {submitBlocked && (
               <p className="text-xs text-amber-400 text-center">
                 Carica almeno 3 immagini per continuare

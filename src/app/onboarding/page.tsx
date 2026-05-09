@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { OnboardingForm } from './OnboardingForm'
+import type { Genre } from '@/types'
 
 export default async function OnboardingPage() {
   const supabase = await createClient()
@@ -17,6 +18,13 @@ export default async function OnboardingPage() {
 
   if (profile) redirect('/dashboard')
 
+  const { data: rawGenres } = await supabase
+    .from('genres')
+    .select('id, name')
+    .order('name')
+
+  const genres = (rawGenres ?? []) as Genre[]
+
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-8 sm:py-16">
       <div className="w-full max-w-lg">
@@ -27,7 +35,7 @@ export default async function OnboardingPage() {
             Completa il tuo profilo per essere approvato dal team.
           </p>
         </div>
-        <OnboardingForm />
+        <OnboardingForm genres={genres} />
       </div>
     </main>
   )

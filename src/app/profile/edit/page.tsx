@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ProfileEditForm } from './ProfileEditForm'
+import type { Genre } from '@/types'
 import type { PhotoExif } from '@/lib/exif'
 import { getLevelProgress, getLevelName } from '@/lib/xp'
 import { isFounder } from '@/lib/founder'
@@ -26,7 +27,7 @@ export default async function ProfileEditPage() {
   if (!user) redirect('/auth/login')
 
   const adminClient = createAdminClient()
-  const [[{ data: profile }, { data: portfolioItems }], { data: rawNotifications }, { data: rawProjects }] = await Promise.all([
+  const [[{ data: profile }, { data: portfolioItems }], { data: rawNotifications }, { data: rawProjects }, { data: rawGenres }, { data: rawProfileGenres }] = await Promise.all([
     Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('portfolio_items').select('*').eq('profile_id', user.id).order('order_index'),
@@ -36,9 +37,14 @@ export default async function ProfileEditPage() {
       .select('id, status')
       .or(`photographer_id.eq.${user.id},model_id.eq.${user.id}`)
       .not('status', 'in', '("cancelled","completed")'),
+    supabase.from('genres').select('id, name').order('name'),
+    adminClient.from('profile_genres').select('genre_id').eq('profile_id', user.id),
   ])
 
   if (!profile) redirect('/onboarding')
+
+  const genres = (rawGenres ?? []) as Genre[]
+  const selectedGenreIds = (rawProfileGenres ?? []).map((r) => r.genre_id as string)
 
   const notifications = (rawNotifications ?? []) as Notification[]
   const activeCount = rawProjects?.length ?? 0
@@ -161,6 +167,8 @@ export default async function ProfileEditPage() {
               portfolioItems={(portfolioItems ?? []) as PortfolioItem[]}
               oldestPhotoSignedUrl={oldestPhotoSignedUrl}
               oldestPhotoExif={((profile as Profile).oldest_photo_exif as PhotoExif | null) ?? null}
+              genres={genres}
+              initialGenreIds={selectedGenreIds}
             />
           </main>
 

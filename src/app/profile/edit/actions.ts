@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function updateProfile(formData: FormData) {
   const supabase = await createClient()
@@ -19,6 +20,8 @@ export async function updateProfile(formData: FormData) {
   }
 
   const avatar_url = (formData.get('avatar_url') as string | null) || null
+  const genreIdsRaw = (formData.get('genre_ids') as string | null) ?? ''
+  const genreIds = genreIdsRaw ? genreIdsRaw.split(',').filter(Boolean) : []
 
   const { error } = await supabase
     .from('profiles')
@@ -26,6 +29,15 @@ export async function updateProfile(formData: FormData) {
     .eq('id', user.id)
 
   if (error) return { error: error.message }
+
+  // Aggiorna generi: cancella esistenti e reinserisce nuovi
+  const adminClient = createAdminClient()
+  await adminClient.from('profile_genres').delete().eq('profile_id', user.id)
+  if (genreIds.length > 0) {
+    await adminClient.from('profile_genres').insert(
+      genreIds.map((genre_id) => ({ profile_id: user.id, genre_id }))
+    )
+  }
 
   redirect('/me')
 }

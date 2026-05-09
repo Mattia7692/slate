@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useCallback } from 'react'
+import type { Genre } from '@/types'
 
 const ROLE_PILLS = [
   { value: '',             label: 'Tutti' },
@@ -22,10 +23,12 @@ interface ExploreFiltersProps {
   currentRole: string
   currentLevel: string
   currentCity: string
+  currentGenre: string
   cities: string[]
+  genres: Genre[]
 }
 
-export function ExploreFilters({ currentRole, currentLevel, currentCity, cities }: ExploreFiltersProps) {
+export function ExploreFilters({ currentRole, currentLevel, currentCity, currentGenre, cities, genres }: ExploreFiltersProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -107,6 +110,37 @@ export function ExploreFilters({ currentRole, currentLevel, currentCity, cities 
               ].join(' ')}
             >
               {c}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Generi */}
+      {genres.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => updateParam('genre', '')}
+            className={[
+              'rounded-full px-4 py-1.5 text-sm font-medium transition-colors duration-150 cursor-pointer',
+              currentGenre === ''
+                ? 'bg-white text-neutral-900'
+                : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200',
+            ].join(' ')}
+          >
+            Tutti i generi
+          </button>
+          {genres.map((g) => (
+            <button
+              key={g.id}
+              onClick={() => updateParam('genre', currentGenre === g.id ? '' : g.id)}
+              className={[
+                'rounded-full px-4 py-1.5 text-sm font-medium transition-colors duration-150 cursor-pointer',
+                currentGenre === g.id
+                  ? 'bg-white text-neutral-900'
+                  : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200',
+              ].join(' ')}
+            >
+              {g.name}
             </button>
           ))}
         </div>

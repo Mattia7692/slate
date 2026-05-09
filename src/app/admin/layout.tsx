@@ -25,13 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <div className="flex flex-1">
 
         {/* Sidebar: solo desktop */}
-        <aside className="hidden md:flex w-52 shrink-0 border-r border-orange-900 bg-orange-950 flex-col p-4">
-          <div className="mb-4">
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-amber-400 uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-              Area admin
-            </span>
-          </div>
+        <aside className="hidden md:flex w-56 shrink-0 border-r border-orange-900 bg-orange-950 flex-col p-4">
           <AdminSidebar pendingApplications={pendingApplications ?? 0} />
           <p className="text-[10px] text-orange-900 mt-auto pt-4">v1 — area riservata</p>
         </aside>

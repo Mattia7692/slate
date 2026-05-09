@@ -52,6 +52,8 @@ type ProjectRow = {
   status: string
   payer_role: string
   amount: number
+  compensation_note: string | null
+  proposer_id: string | null
   created_at: string
   photographer_id: string
   photographer: { id: string; full_name: string; role: string; level: number }
@@ -113,7 +115,7 @@ export default async function MePage() {
     supabase
       .from('projects')
       .select(`
-        id, status, payer_role, amount, created_at, photographer_id,
+        id, status, payer_role, amount, compensation_note, proposer_id, created_at, photographer_id,
         photographer:profiles!projects_photographer_id_fkey(id, full_name, role, level),
         model:profiles!projects_model_id_fkey(id, full_name, role, level)
       `)
@@ -302,6 +304,29 @@ export default async function MePage() {
                 {activeProjects.map((p) => {
                   const isPhotographer = user.id === p.photographer.id
                   const other = isPhotographer ? p.model : p.photographer
+                  const isProposer = p.proposer_id ? user.id === p.proposer_id : isPhotographer
+                  const proposerIsPhotographer = p.proposer_id
+                    ? p.proposer_id === p.photographer_id
+                    : isPhotographer
+                  const proposerProfile = proposerIsPhotographer ? p.photographer : p.model
+                  const proposerFirstName = (proposerProfile.full_name as string).split(' ')[0]
+                  const note = p.compensation_note
+                  let compensationLabel: string
+                  if (!note) {
+                    compensationLabel = p.payer_role === 'tfp' ? 'TFP' : `€${(p.amount / 100).toFixed(0)}`
+                  } else if (note.startsWith('TFP')) {
+                    compensationLabel = note
+                  } else {
+                    const amountMatch = note.match(/€(\d+)/)
+                    const amountStr = amountMatch ? ` — €${amountMatch[1]}` : ''
+                    if (note.startsWith('Pago io')) {
+                      compensationLabel = isProposer ? note : `${proposerFirstName} ti paga${amountStr}`
+                    } else if (note.startsWith('Vengo pagato')) {
+                      compensationLabel = isProposer ? note : `Devi pagare ${proposerFirstName}${amountStr}`
+                    } else {
+                      compensationLabel = note
+                    }
+                  }
                   return (
                     <Link
                       key={p.id}
@@ -311,9 +336,7 @@ export default async function MePage() {
                       <div className={['w-2 h-2 rounded-full shrink-0', STATUS_DOT[p.status as ProjectStatus]].join(' ')} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-neutral-100 truncate">{other.full_name}</p>
-                        <p className="text-xs text-neutral-500 mt-0.5">
-                          {p.payer_role === 'tfp' ? 'TFP' : `€${(p.amount / 100).toFixed(0)}`}
-                        </p>
+                        <p className="text-xs text-neutral-500 mt-0.5">{compensationLabel}</p>
                       </div>
                       <span className={[
                         'text-[11px] font-medium px-2.5 py-1 rounded-full shrink-0',

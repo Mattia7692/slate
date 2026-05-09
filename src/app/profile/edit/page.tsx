@@ -37,7 +37,7 @@ export default async function ProfileEditPage() {
       .select('id, status')
       .or(`photographer_id.eq.${user.id},model_id.eq.${user.id}`)
       .not('status', 'in', '("cancelled","completed")'),
-    supabase.from('genres').select('id, name').order('name'),
+    adminClient.from('genres').select('id, name').order('name'),
     adminClient.from('profile_genres').select('genre_id').eq('profile_id', user.id),
   ])
 

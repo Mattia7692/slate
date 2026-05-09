@@ -1,13 +1,13 @@
 import { requireAdmin } from '@/lib/admin'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { OnboardingForm } from '@/app/onboarding/OnboardingForm'
 import type { Genre } from '@/types'
 
 export default async function OnboardingPreviewPage() {
   await requireAdmin()
 
-  const supabase = await createClient()
-  const { data: rawGenres } = await supabase.from('genres').select('id, name').order('name')
+  const adminClient = createAdminClient()
+  const { data: rawGenres } = await adminClient.from('genres').select('id, name').order('name')
   const genres = (rawGenres ?? []) as Genre[]
 
   return (

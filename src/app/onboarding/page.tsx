@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { OnboardingForm } from './OnboardingForm'
 import type { Genre } from '@/types'
 
@@ -18,7 +19,8 @@ export default async function OnboardingPage() {
 
   if (profile) redirect('/dashboard')
 
-  const { data: rawGenres } = await supabase
+  const adminClient = createAdminClient()
+  const { data: rawGenres } = await adminClient
     .from('genres')
     .select('id, name')
     .order('name')

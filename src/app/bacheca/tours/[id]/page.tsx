@@ -128,7 +128,7 @@ export default async function TourDetailPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Location */}
+        {/* Location + Mappa */}
         {tour.location_available && tour.location && (() => {
           let desc = tour.location
           let address: string | null = null
@@ -140,21 +140,35 @@ export default async function TourDetailPage({ params }: Props) {
             }
           } catch { /* plain text fallback */ }
           return (
-            <div className="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 space-y-2">
-              <p className="text-[11px] text-neutral-500">Location disponibile</p>
-              {desc && <p className="text-sm text-neutral-300">{desc}</p>}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Info card */}
+              <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 space-y-2">
+                <p className="text-[11px] text-neutral-500 uppercase tracking-wide font-medium">Location disponibile</p>
+                {desc && <p className="text-sm text-neutral-300 leading-relaxed">{desc}</p>}
+                {address && (
+                  <a
+                    href={`https://maps.google.com/?q=${encodeURIComponent(address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    {address}
+                  </a>
+                )}
+              </div>
+              {/* Mappa */}
               {address && (
-                <a
-                  href={`https://maps.google.com/?q=${encodeURIComponent(address)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-                  </svg>
-                  {address}
-                </a>
+                <div className="rounded-xl overflow-hidden border border-neutral-800 h-36">
+                  <iframe
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(address)}&output=embed&hl=it&z=15`}
+                    className="w-full h-full"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
               )}
             </div>
           )
@@ -162,12 +176,15 @@ export default async function TourDetailPage({ params }: Props) {
 
         {/* Generi */}
         {tourGenres.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {tourGenres.map((g) => (
-              <span key={g.id} className="rounded-full border border-neutral-700 bg-neutral-900 px-3 py-1 text-xs text-neutral-400">
-                {g.label}
-              </span>
-            ))}
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 space-y-3">
+            <p className="text-[11px] text-neutral-500 uppercase tracking-wide font-medium">Generi trattati</p>
+            <div className="flex flex-wrap gap-2">
+              {tourGenres.map((g) => (
+                <span key={g.id} className="rounded-full border border-neutral-700 bg-neutral-800 px-3 py-1 text-xs text-neutral-300">
+                  {g.label}
+                </span>
+              ))}
+            </div>
           </div>
         )}
 

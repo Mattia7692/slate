@@ -84,13 +84,35 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   const messages = (rawMessages ?? []) as MessageWithSender[]
 
   // Sign fields: proponente = chi ha compilato, ricevente = chi ha approvato
-  const proposerIsPhotographer = project.proposer_id === project.photographer_id
-  const mySignedAt = isProposer
-    ? (proposerIsPhotographer ? brief?.signed_by_photographer_at : brief?.signed_by_model_at) ?? null
-    : (proposerIsPhotographer ? brief?.signed_by_model_at : brief?.signed_by_photographer_at) ?? null
-  const otherSignedAt = isProposer
-    ? (proposerIsPhotographer ? brief?.signed_by_model_at : brief?.signed_by_photographer_at) ?? null
-    : (proposerIsPhotographer ? brief?.signed_by_photographer_at : brief?.signed_by_model_at) ?? null
+  const proposerIsPhotographer = project.proposer_id
+    ? project.proposer_id === project.photographer_id
+    : isPhotographer
+  const proposerSignedAt = (proposerIsPhotographer
+    ? brief?.signed_by_photographer_at
+    : brief?.signed_by_model_at) ?? null
+  const receiverSignedAt = (proposerIsPhotographer
+    ? brief?.signed_by_model_at
+    : brief?.signed_by_photographer_at) ?? null
+
+  // Label compenso contestuale (dal punto di vista dell'utente corrente)
+  const proposerProfile = proposerIsPhotographer ? project.photographer : project.model
+  const proposerFirstName = (proposerProfile.full_name as string).split(' ')[0]
+
+  function buildCompensationLabel(note: string | null): string | null {
+    if (!note) return null
+    if (note.startsWith('TFP')) return note
+    const amountMatch = note.match(/€(\d+)/)
+    const amountStr = amountMatch ? ` — €${amountMatch[1]}` : ''
+    if (note.startsWith('Pago io')) {
+      return isProposer ? note : `${proposerFirstName} ti paga${amountStr}`
+    }
+    if (note.startsWith('Vengo pagato')) {
+      return isProposer ? note : `Devi pagare ${proposerFirstName}${amountStr}`
+    }
+    return note
+  }
+
+  const compensationLabel = buildCompensationLabel(project.compensation_note ?? null)
 
   const canEditBrief = isProposer && project.status === 'accepted'
   const canApproveBrief = !isProposer && project.status === 'accepted' && !!brief
@@ -125,7 +147,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
             status={project.status}
             payerRole={project.payer_role}
             amount={project.amount}
-            compensationNote={project.compensation_note ?? null}
+            compensationNote={compensationLabel}
           />
         </section>
 
@@ -158,8 +180,8 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
               currentUserId={user.id}
               initialLocation={inviteInitialData?.location ?? null}
               initialMoodboardUrls={inviteInitialData?.moodboard_urls ?? []}
-              mySignedAt={mySignedAt}
-              otherSignedAt={otherSignedAt}
+              proposerSignedAt={proposerSignedAt}
+              receiverSignedAt={receiverSignedAt}
             />
           </section>
         )}

@@ -34,8 +34,8 @@ interface BriefFormProps {
   currentUserId: string
   initialLocation: string | null       // da invite: "desc\naddr"
   initialMoodboardUrls: string[]       // da invite
-  mySignedAt: string | null
-  otherSignedAt: string | null
+  proposerSignedAt: string | null
+  receiverSignedAt: string | null
 }
 
 function useLocationMap(address: string) {
@@ -92,8 +92,8 @@ export function BriefForm({
   currentUserId,
   initialLocation,
   initialMoodboardUrls,
-  mySignedAt,
-  otherSignedAt,
+  proposerSignedAt,
+  receiverSignedAt,
 }: BriefFormProps) {
   const [isPending, startTransition] = useTransition()
   const [isEditing, setIsEditing] = useState(!existingBrief && canEdit)
@@ -218,8 +218,8 @@ export function BriefForm({
         )}
 
         <div className="flex gap-3 pt-2 flex-wrap">
-          <SignBadge label="Proponente" signedAt={mySignedAt} />
-          <SignBadge label="Ricevente" signedAt={otherSignedAt} />
+          <SignBadge label="Proponente" signedAt={proposerSignedAt} />
+          <SignBadge label="Ricevente" signedAt={receiverSignedAt} />
         </div>
 
         {error && <p className="text-sm text-red-400">{error}</p>}

@@ -77,7 +77,9 @@ export async function saveBrief(projectId: string, data: BriefFormData) {
   const proposerSignField = isPhotographer ? 'signed_by_photographer_at' : 'signed_by_model_at'
   const receiverSignField = isPhotographer ? 'signed_by_model_at' : 'signed_by_photographer_at'
 
-  const { error } = await supabase
+  const adminClient = createAdminClient()
+
+  const { error } = await adminClient
     .from('briefs')
     .upsert(
       {
@@ -95,8 +97,6 @@ export async function saveBrief(projectId: string, data: BriefFormData) {
   const receiverId = project.proposer_id === project.photographer_id
     ? project.model_id
     : project.photographer_id
-
-  const adminClient = createAdminClient()
   await adminClient.from('notifications').insert({
     user_id: receiverId,
     type: 'project_update',
@@ -128,14 +128,14 @@ export async function approveBrief(projectId: string) {
   const now = new Date().toISOString()
   const receiverSignField = isPhotographer ? 'signed_by_photographer_at' : 'signed_by_model_at'
 
+  const adminClient = createAdminClient()
   await Promise.all([
-    supabase.from('briefs').update({ [receiverSignField]: now }).eq('project_id', projectId),
+    adminClient.from('briefs').update({ [receiverSignField]: now }).eq('project_id', projectId),
     supabase.from('projects').update({ status: 'brief_signed' }).eq('id', projectId),
   ])
 
   // Notifica al proponente
   if (project.proposer_id) {
-    const adminClient = createAdminClient()
     await adminClient.from('notifications').insert({
       user_id: project.proposer_id,
       type: 'project_update',

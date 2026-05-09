@@ -122,7 +122,7 @@ export function ProposalReviewModal({ inviteId, currentUserId, onClose }: Props)
       const result = await acceptInvite(inviteId)
       if (result.error) { alert(result.error); setAction(null); return }
       onClose()
-      router.push('/dashboard')
+      router.push('/me')
     })
   }
 

@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { GenerateInviteButton } from './GenerateInviteButton'
+import { InviteCodeActions } from './InviteCodeActions'
 
 export default async function InviteCodesPage() {
   const adminUser = await requireAdmin()
@@ -49,6 +50,9 @@ export default async function InviteCodesPage() {
                 <span className="font-mono text-sm tracking-widest text-neutral-300 flex-1">
                   {c.code}
                 </span>
+
+                {/* Azioni copia */}
+                {!isUsed && <InviteCodeActions code={c.code} />}
 
                 {/* Usato da */}
                 <div className="text-right min-w-0">

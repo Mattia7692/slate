@@ -16,7 +16,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         {/* Logo */}
         <div className="text-center space-y-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Slate" className="h-32 w-auto mx-auto mix-blend-screen" />
+          <img src="/logo.png" alt="Slate" className="w-full h-auto mx-auto mix-blend-screen" />
           <p className="text-sm text-neutral-400">Accedi al tuo account</p>
         </div>
 

@@ -133,13 +133,24 @@ export function TourCalendar({ slots, isCreator, tourId, creatorId, tourStatus, 
                 style={dates.length > 3 ? { minWidth: '148px', maxWidth: '148px' } : undefined}
               >
                 {/* Day header */}
-                <div className="mb-2 pb-2 border-b border-neutral-800">
-                  <p className="text-[11px] text-neutral-500 capitalize">
-                    {format(parsed, 'EEE', { locale: it })}
-                  </p>
-                  <p className="text-sm font-semibold">
-                    {format(parsed, 'd MMM', { locale: it })}
-                  </p>
+                <div className="mb-2 pb-2 border-b border-neutral-800 flex items-start justify-between">
+                  <div>
+                    <p className="text-[11px] text-neutral-500 capitalize">
+                      {format(parsed, 'EEE', { locale: it })}
+                    </p>
+                    <p className="text-sm font-semibold">
+                      {format(parsed, 'd MMM', { locale: it })}
+                    </p>
+                  </div>
+                  {isCreator && tourStatus === 'active' && (
+                    <button
+                      onClick={() => setAddSlotDate(date)}
+                      className="mt-0.5 w-5 h-5 rounded flex items-center justify-center border border-violet-500/40 bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 active:bg-violet-500/30 cursor-pointer shrink-0"
+                      title="Aggiungi slot"
+                    >
+                      <span className="text-[13px] leading-none">+</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Morning */}
@@ -207,30 +218,6 @@ export function TourCalendar({ slots, isCreator, tourId, creatorId, tourStatus, 
         </div>
       </div>
 
-      {/* Aggiungi slot — fuori dal contenitore overflow-x per evitare il clip verticale su mobile */}
-      {isCreator && tourStatus === 'active' && (
-        <div className="overflow-x-auto -mx-4 px-4 mt-2">
-          <div
-            className="flex gap-2"
-            style={{ minWidth: `${dates.length * (dates.length <= 3 ? 0 : 152)}px` }}
-          >
-            {dates.map((date) => (
-              <div
-                key={date}
-                className="min-w-0 flex-1"
-                style={dates.length > 3 ? { minWidth: '148px', maxWidth: '148px' } : undefined}
-              >
-                <button
-                  onClick={() => setAddSlotDate(date)}
-                  className="w-full rounded-lg border border-dashed border-violet-500/30 bg-violet-500/5 px-2 py-2 text-left transition-colors hover:bg-violet-500/10 hover:border-violet-500/50 active:bg-violet-500/20 cursor-pointer"
-                >
-                  <p className="text-[10px] font-semibold text-violet-400 leading-none">+ Aggiungi slot</p>
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {selectedSlot && (
         <SlotModal

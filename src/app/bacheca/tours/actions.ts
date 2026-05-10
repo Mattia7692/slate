@@ -215,14 +215,17 @@ export async function bookSlot(slotId: string, tourId: string, creatorId: string
   const msgPart = message?.trim() ? ` · "${message.trim().slice(0, 80)}"` : ''
 
   // Notifica alla modella
-  const { error: notifError } = await adminClient.from('notifications').insert({
+  const notifPayload = {
     user_id: creatorId,
-    type: 'project_update',
+    type: 'project_updated' as const,
     title: 'Nuova prenotazione slot',
     body: `${myProfile?.full_name ?? 'Un fotografo'} ha prenotato lo slot del ${slotDate} alle ${startTime.slice(0, 5)}${msgPart}.`,
     data: { tour_id: tourId, slot_id: slotId },
-  })
-  if (notifError) console.error('bookSlot notification error:', notifError.message)
+  }
+  console.log('[bookSlot] inserting notification', JSON.stringify(notifPayload))
+  const { data: notifData, error: notifError } = await adminClient.from('notifications').insert(notifPayload).select()
+  console.log('[bookSlot] notification result', JSON.stringify({ data: notifData, error: notifError }))
+  if (notifError) return { error: `Slot prenotato, ma errore notifica: ${notifError.message}` }
 
   revalidatePath(`/bacheca/tours/${tourId}`)
   return { error: null }
@@ -260,7 +263,7 @@ export async function confirmSlot(slotId: string, tourId: string) {
 
     await adminClient.from('notifications').insert({
       user_id: slot.booked_by,
-      type: 'project_update',
+      type: 'project_updated',
       title: 'Prenotazione confermata',
       body: `${creatorProfile?.full_name ?? 'La modella'} ha confermato il tuo slot del ${slot.slot_date} alle ${slot.start_time.slice(0, 5)}.`,
       data: { tour_id: tourId, slot_id: slotId },
@@ -324,7 +327,7 @@ export async function confirmSlotWithChanges(
 
     await adminClient.from('notifications').insert({
       user_id: slot.booked_by,
-      type: 'project_update',
+      type: 'project_updated',
       title: 'Prenotazione confermata con modifiche',
       body: `${creatorProfile?.full_name ?? 'La modella'} ha accettato a queste condizioni: ${startTime}–${endTime}, ${durationHours}h, €${totalAmount} totali.`,
       data: { tour_id: tourId, slot_id: slotId },
@@ -638,7 +641,7 @@ export async function deleteTourEvent(
     await adminClient.from('notifications').insert(
       uniqueBookers.map((bookerId) => ({
         user_id: bookerId,
-        type: 'project_update',
+        type: 'project_updated',
         title: 'Evento annullato',
         body: `${creatorProfile?.full_name ?? 'Il creatore'} ha annullato l'evento "${tour.title}". Ci scusiamo per il disagio.`,
         data: {},

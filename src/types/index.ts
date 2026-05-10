@@ -19,7 +19,8 @@ export type NotificationType =
   | 'invite_received'
   | 'invite_accepted'
   | 'invite_declined'
-  | 'project_update'
+  | 'project_message'
+  | 'project_updated'
 export type XpReason =
   | 'seniority_bonus'
   | 'shoot_completed'

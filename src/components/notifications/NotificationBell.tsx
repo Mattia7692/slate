@@ -16,7 +16,8 @@ const TYPE_ICON: Record<NotificationType, string> = {
   invite_received: '📩',
   invite_accepted: '✅',
   invite_declined: '❌',
-  project_update: '📋',
+  project_message: '💬',
+  project_updated: '📋',
 }
 
 export function NotificationBell({ initialNotifications, currentUserId }: NotificationBellProps) {

@@ -317,6 +317,117 @@ export async function updateSlot(slotId: string, tourId: string, durationHours: 
   return { error: null }
 }
 
+export async function reactivateSlot(
+  slotId: string,
+  tourId: string,
+  startTime: string,
+  durationHours: number,
+  hourlyRate: number,
+) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/auth/login')
+
+  const adminClient = createAdminClient()
+
+  const { data: slot } = await adminClient
+    .from('tour_slots')
+    .select('slot_date')
+    .eq('id', slotId)
+    .single()
+
+  if (!slot) return { error: 'Slot non trovato.' }
+
+  // Calcola end_time
+  const base = new Date()
+  const [h, m] = startTime.split(':').map(Number)
+  base.setHours(h, m, 0, 0)
+  const endTime = format(addHours(base, durationHours), 'HH:mm')
+
+  // Controlla sovrapposizioni con slot attivi (non cancellati)
+  const { data: overlapping } = await adminClient
+    .from('tour_slots')
+    .select('id')
+    .eq('tour_id', tourId)
+    .eq('slot_date', slot.slot_date)
+    .neq('id', slotId)
+    .neq('status', 'cancelled')
+    .lt('start_time', endTime)
+    .gt('end_time', startTime)
+
+  if (overlapping && overlapping.length > 0) {
+    return { error: 'Lo slot si sovrappone a uno slot esistente.' }
+  }
+
+  const { error } = await adminClient
+    .from('tour_slots')
+    .update({
+      start_time: startTime,
+      end_time: endTime,
+      duration_hours: durationHours,
+      hourly_rate: hourlyRate,
+      total_amount: durationHours * hourlyRate,
+      status: 'free',
+    })
+    .eq('id', slotId)
+    .eq('tour_id', tourId)
+
+  if (error) return { error: error.message }
+  revalidatePath(`/bacheca/tours/${tourId}`)
+  return { error: null }
+}
+
+export async function addSlot(
+  tourId: string,
+  slotDate: string,
+  startTime: string,
+  durationHours: number,
+  hourlyRate: number,
+) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/auth/login')
+
+  const adminClient = createAdminClient()
+
+  // Calcola end_time
+  const base = new Date()
+  const [h, m] = startTime.split(':').map(Number)
+  base.setHours(h, m, 0, 0)
+  const endTime = format(addHours(base, durationHours), 'HH:mm')
+
+  // Controlla sovrapposizioni con slot attivi
+  const { data: overlapping } = await adminClient
+    .from('tour_slots')
+    .select('id')
+    .eq('tour_id', tourId)
+    .eq('slot_date', slotDate)
+    .neq('status', 'cancelled')
+    .lt('start_time', endTime)
+    .gt('end_time', startTime)
+
+  if (overlapping && overlapping.length > 0) {
+    return { error: 'Lo slot si sovrappone a uno slot esistente.' }
+  }
+
+  const { error } = await adminClient
+    .from('tour_slots')
+    .insert({
+      tour_id: tourId,
+      slot_date: slotDate,
+      start_time: startTime,
+      end_time: endTime,
+      duration_hours: durationHours,
+      hourly_rate: hourlyRate,
+      total_amount: durationHours * hourlyRate,
+      status: 'free',
+    })
+
+  if (error) return { error: error.message }
+  revalidatePath(`/bacheca/tours/${tourId}`)
+  return { error: null }
+}
+
 export async function closeTour(tourId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

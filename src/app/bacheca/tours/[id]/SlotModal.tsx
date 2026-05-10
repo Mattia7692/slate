@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { bookSlot, confirmSlot, cancelSlot, updateSlot } from '../actions'
+import { bookSlot, confirmSlot, cancelSlot, updateSlot, reactivateSlot } from '../actions'
 import type { TourSlotWithBooker } from '@/types'
 
 interface Props {
@@ -21,8 +21,9 @@ export function SlotModal({ slot, isCreator, tourId, creatorId, currentUserId, o
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Edit mode (creator only, free slots)
-  const [editMode, setEditMode] = useState(false)
+  // Edit mode (creator only)
+  const [editMode, setEditMode] = useState(slot.status === 'cancelled')
+  const [editStart, setEditStart] = useState(slot.start_time.slice(0, 5))
   const [editDuration, setEditDuration] = useState(String(slot.duration_hours))
   const [editRate, setEditRate] = useState(String(slot.hourly_rate))
 
@@ -64,11 +65,15 @@ export function SlotModal({ slot, isCreator, tourId, creatorId, currentUserId, o
   async function handleUpdate() {
     const dur = parseFloat(editDuration)
     const rate = parseFloat(editRate)
-    if (!dur || dur <= 0 || !rate || rate <= 0) {
+    if (!editStart || !dur || dur <= 0 || !rate || rate <= 0) {
       setError('Valori non validi.')
       return
     }
-    await run(() => updateSlot(slot.id, tourId, dur, rate))
+    if (slot.status === 'cancelled') {
+      await run(() => reactivateSlot(slot.id, tourId, editStart, dur, rate))
+    } else {
+      await run(() => updateSlot(slot.id, tourId, dur, rate))
+    }
   }
 
   return (
@@ -116,9 +121,25 @@ export function SlotModal({ slot, isCreator, tourId, creatorId, currentUserId, o
           </div>
         )}
 
-        {/* Edit mode (creator, free slots) */}
+        {/* Edit mode (creator) */}
         {editMode && (
           <div className="space-y-3">
+            {slot.status === 'cancelled' && (
+              <div className="rounded-lg border border-violet-500/20 bg-violet-500/10 px-3 py-2">
+                <p className="text-xs text-violet-300">Slot annullato — modifica e riattiva</p>
+              </div>
+            )}
+            {slot.status === 'cancelled' && (
+              <div className="space-y-1.5">
+                <label className="text-xs text-neutral-500">Ora inizio</label>
+                <input
+                  type="time"
+                  value={editStart}
+                  onChange={(e) => setEditStart(e.target.value)}
+                  className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-500/20"
+                />
+              </div>
+            )}
             <div className="space-y-1.5">
               <label className="text-xs text-neutral-500">Durata (ore)</label>
               <input
@@ -199,17 +220,28 @@ export function SlotModal({ slot, isCreator, tourId, creatorId, currentUserId, o
               <button
                 onClick={handleUpdate}
                 disabled={loading}
-                className="w-full rounded-xl bg-white text-neutral-900 hover:bg-neutral-200 disabled:opacity-50 px-4 py-2.5 text-sm font-semibold transition-colors"
+                className={[
+                  'w-full rounded-xl disabled:opacity-50 px-4 py-2.5 text-sm font-semibold transition-colors',
+                  slot.status === 'cancelled'
+                    ? 'bg-violet-600 hover:bg-violet-500 text-white'
+                    : 'bg-white text-neutral-900 hover:bg-neutral-200',
+                ].join(' ')}
               >
-                {loading ? 'Salvataggio…' : 'Salva modifiche'}
+                {loading
+                  ? 'Salvataggio…'
+                  : slot.status === 'cancelled'
+                    ? 'Riattiva slot'
+                    : 'Salva modifiche'}
               </button>
-              <button
-                onClick={() => setEditMode(false)}
-                disabled={loading}
-                className="w-full rounded-xl border border-neutral-700 hover:bg-neutral-800 text-neutral-400 px-4 py-2.5 text-sm font-semibold transition-colors"
-              >
-                Annulla
-              </button>
+              {slot.status !== 'cancelled' && (
+                <button
+                  onClick={() => setEditMode(false)}
+                  disabled={loading}
+                  className="w-full rounded-xl border border-neutral-700 hover:bg-neutral-800 text-neutral-400 px-4 py-2.5 text-sm font-semibold transition-colors"
+                >
+                  Annulla
+                </button>
+              )}
             </>
           )}
 

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { SlotModal } from './SlotModal'
+import { AddSlotModal } from './AddSlotModal'
 import type { TourSlotWithBooker, TourStatus, SlotStatus } from '@/types'
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
   creatorId: string
   tourStatus: TourStatus
   currentUserId: string
+  defaultRate: number
 }
 
 function groupByDate(slots: TourSlotWithBooker[]): Map<string, TourSlotWithBooker[]> {
@@ -57,8 +59,9 @@ const LEGEND_VISITOR: { status: SlotStatus | 'occupied'; label: string }[] = [
   { status: 'occupied', label: 'Occupato' },
 ]
 
-export function TourCalendar({ slots, isCreator, tourId, creatorId, tourStatus, currentUserId }: Props) {
+export function TourCalendar({ slots, isCreator, tourId, creatorId, tourStatus, currentUserId, defaultRate }: Props) {
   const [selectedSlot, setSelectedSlot] = useState<TourSlotWithBooker | null>(null)
+  const [addSlotDate, setAddSlotDate] = useState<string | null>(null)
 
   const grouped = groupByDate(slots)
   const dates = Array.from(grouped.keys()).sort()
@@ -69,7 +72,7 @@ export function TourCalendar({ slots, isCreator, tourId, creatorId, tourStatus, 
 
   function isClickable(slot: TourSlotWithBooker): boolean {
     if (tourStatus !== 'active') return false
-    if (isCreator) return slot.status !== 'cancelled'
+    if (isCreator) return true
     if (slot.status === 'free') return true
     if (slot.status === 'booked' && slot.booked_by === currentUserId) return true
     return false
@@ -191,6 +194,16 @@ export function TourCalendar({ slots, isCreator, tourId, creatorId, tourStatus, 
                     })}
                   </div>
                 )}
+
+                {/* Aggiungi slot (creator only) */}
+                {isCreator && tourStatus === 'active' && (
+                  <button
+                    onClick={() => setAddSlotDate(date)}
+                    className="mt-2 w-full rounded-lg border border-dashed border-violet-500/30 bg-violet-500/5 px-2 py-1.5 text-left transition-colors hover:bg-violet-500/10 hover:border-violet-500/50 cursor-pointer"
+                  >
+                    <p className="text-[10px] font-semibold text-violet-400 leading-none">+ Aggiungi slot</p>
+                  </button>
+                )}
               </div>
             )
           })}
@@ -205,6 +218,15 @@ export function TourCalendar({ slots, isCreator, tourId, creatorId, tourStatus, 
           creatorId={creatorId}
           currentUserId={currentUserId}
           onClose={() => setSelectedSlot(null)}
+        />
+      )}
+
+      {addSlotDate && (
+        <AddSlotModal
+          tourId={tourId}
+          slotDate={addSlotDate}
+          defaultRate={defaultRate}
+          onClose={() => setAddSlotDate(null)}
         />
       )}
     </>

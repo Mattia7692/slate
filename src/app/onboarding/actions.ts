@@ -84,6 +84,16 @@ export async function createProfile(payload: CreateProfilePayload) {
     )
   }
 
+  // Marca il codice invito come usato (ora che il profilo esiste come FK target)
+  const inviteCode = user.user_metadata?.invite_code as string | undefined
+  if (inviteCode) {
+    await adminClient
+      .from('invite_codes')
+      .update({ used_by: user.id, used_at: new Date().toISOString() })
+      .eq('code', inviteCode)
+      .is('used_by', null) // solo se non già marcato
+  }
+
   // Logga il bonus anzianità se > 0
   if (seniorityBonus > 0) {
     await supabase.from('xp_transactions').insert({

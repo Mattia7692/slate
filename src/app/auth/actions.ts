@@ -66,11 +66,8 @@ export async function signup(formData: FormData) {
     redirect(`/auth/signup?error=${encodeURIComponent(signupError?.message ?? 'Errore durante la registrazione.')}`)
   }
 
-  // Marca il codice invito come usato
-  await admin
-    .from('invite_codes')
-    .update({ used_by: authData.user.id, used_at: new Date().toISOString() })
-    .eq('id', invite.id)
+  // Il codice viene marcato come usato in onboarding/actions.ts,
+  // dopo che il profilo è stato creato (used_by è FK → profiles).
 
   redirect('/onboarding')
 }

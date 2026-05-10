@@ -32,7 +32,7 @@ interface AdminPageProps {
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   await requireAdmin()
 
-  const { status = 'pending' } = await searchParams
+  const { status = 'approved' } = await searchParams
   const admin = createAdminClient()
 
   let query = admin

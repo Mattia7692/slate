@@ -3,6 +3,7 @@
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useCallback } from 'react'
 import type { Genre } from '@/types'
+import { genreColor } from '@/lib/genreColors'
 
 const ROLE_PILLS = [
   { value: '',             label: 'Tutti' },
@@ -129,20 +130,24 @@ export function ExploreFilters({ currentRole, currentLevel, currentCity, current
           >
             Tutti i generi
           </button>
-          {genres.map((g) => (
-            <button
-              key={g.id}
-              onClick={() => updateParam('genre', currentGenre === g.id ? '' : g.id)}
-              className={[
-                'rounded-full px-4 py-1.5 text-sm font-medium transition-colors duration-150 cursor-pointer',
-                currentGenre === g.id
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200',
-              ].join(' ')}
-            >
-              {g.label}
-            </button>
-          ))}
+          {genres.map((g) => {
+            const c = genreColor(g.order_index)
+            const isActive = currentGenre === g.id
+            return (
+              <button
+                key={g.id}
+                onClick={() => updateParam('genre', isActive ? '' : g.id)}
+                className={[
+                  'rounded-full border px-4 py-1.5 text-sm font-medium transition-all duration-150 cursor-pointer',
+                  isActive
+                    ? `${c.border} ${c.bgActive} ${c.text}`
+                    : 'border-neutral-700 bg-neutral-800/60 text-neutral-500 hover:border-neutral-600 hover:text-neutral-300',
+                ].join(' ')}
+              >
+                {g.label}
+              </button>
+            )
+          })}
         </div>
       )}
     </div>

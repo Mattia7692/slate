@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { AppNav } from '@/components/layout/AppNav'
 import { TourCalendar } from './TourCalendar'
 import { format, parseISO, differenceInDays } from 'date-fns'
+import { genrePillClass } from '@/lib/genreColors'
 import { it } from 'date-fns/locale'
 import type { Notification, TourWithCreator, TourSlotWithBooker, Genre } from '@/types'
 
@@ -180,7 +181,7 @@ export default async function TourDetailPage({ params }: Props) {
             <p className="text-[11px] text-neutral-500 uppercase tracking-wide font-medium">Generi trattati</p>
             <div className="flex flex-wrap gap-2">
               {tourGenres.map((g) => (
-                <span key={g.id} className="rounded-full border border-neutral-700 bg-neutral-800 px-3 py-1 text-xs text-neutral-300">
+                <span key={g.id} className={genrePillClass(g.order_index)}>
                   {g.label}
                 </span>
               ))}

@@ -11,6 +11,7 @@ import { AppNav } from '@/components/layout/AppNav'
 import { ProposeModal } from './ProposeModal'
 import { MessageButton } from './MessageButton'
 import type { ReviewWithReviewer, Notification, Genre } from '@/types'
+import { genrePillClass } from '@/lib/genreColors'
 
 interface ProfilePageProps {
   params: Promise<{ id: string }>
@@ -145,10 +146,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         {profileGenres.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {profileGenres.map((g) => (
-              <span
-                key={g.id}
-                className="rounded-full border border-neutral-700 bg-neutral-900 px-3 py-1 text-xs text-neutral-400"
-              >
+              <span key={g.id} className={genrePillClass(g.order_index)}>
                 {g.label}
               </span>
             ))}

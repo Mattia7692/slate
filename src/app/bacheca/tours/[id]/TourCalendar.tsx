@@ -33,12 +33,15 @@ function fmt(time: string) {
   return time.slice(0, 5)
 }
 
-const STATUS_STYLES: Record<SlotStatus | 'occupied', string> = {
-  free:      'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 active:bg-emerald-500/30',
-  booked:    'border-amber-500/40  bg-amber-500/10  text-amber-300  active:bg-amber-500/30',
-  confirmed: 'border-blue-500/40   bg-blue-500/10   text-blue-300   active:bg-blue-500/30',
-  cancelled: 'border-neutral-800   bg-neutral-900   text-neutral-600',
-  occupied:  'border-red-500/30    bg-red-500/10    text-red-400',
+type DisplayStatus = SlotStatus | 'occupied' | 'confirmed_mine'
+
+const STATUS_STYLES: Record<DisplayStatus, string> = {
+  free:           'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 active:bg-emerald-500/30',
+  booked:         'border-amber-500/40  bg-amber-500/10  text-amber-300  active:bg-amber-500/30',
+  confirmed:      'border-blue-500/40   bg-blue-500/10   text-blue-300   active:bg-blue-500/30',
+  cancelled:      'border-neutral-800   bg-neutral-900   text-neutral-600',
+  occupied:       'border-red-500/30    bg-red-500/10    text-red-400',
+  confirmed_mine: 'border-cyan-500/40   bg-cyan-500/10   text-cyan-300   active:bg-cyan-500/30',
 }
 
 const STATUS_LABEL: Record<SlotStatus, string> = {
@@ -48,16 +51,17 @@ const STATUS_LABEL: Record<SlotStatus, string> = {
   cancelled: 'Annullato',
 }
 
-const LEGEND_CREATOR: { status: SlotStatus | 'occupied'; label: string }[] = [
+const LEGEND_CREATOR: { status: DisplayStatus; label: string }[] = [
   { status: 'free',      label: 'Libero' },
   { status: 'booked',    label: 'Prenotato' },
   { status: 'confirmed', label: 'Confermato' },
   { status: 'cancelled', label: 'Annullato' },
 ]
 
-const LEGEND_VISITOR: { status: SlotStatus | 'occupied'; label: string }[] = [
-  { status: 'free',     label: 'Disponibile' },
-  { status: 'occupied', label: 'Occupato' },
+const LEGEND_VISITOR: { status: DisplayStatus; label: string }[] = [
+  { status: 'free',           label: 'Disponibile' },
+  { status: 'confirmed_mine', label: 'Tuo slot' },
+  { status: 'occupied',       label: 'Occupato' },
 ]
 
 export function TourCalendar({ slots, isCreator, tourId, creatorId, tourStatus, currentUserId, defaultRate, tourGenres }: Props) {
@@ -79,11 +83,12 @@ export function TourCalendar({ slots, isCreator, tourId, creatorId, tourStatus, 
     return false
   }
 
-  function getDisplayStatus(slot: TourSlotWithBooker): SlotStatus | 'occupied' {
-    if (!isCreator && (
-      (slot.status === 'booked' && slot.booked_by !== currentUserId) ||
-      slot.status === 'confirmed'
-    )) return 'occupied'
+  function getDisplayStatus(slot: TourSlotWithBooker): DisplayStatus {
+    if (!isCreator) {
+      if (slot.status === 'confirmed' && slot.booked_by === currentUserId) return 'confirmed_mine'
+      if ((slot.status === 'booked' && slot.booked_by !== currentUserId) ||
+          slot.status === 'confirmed') return 'occupied'
+    }
     return slot.status
   }
 
@@ -91,6 +96,7 @@ export function TourCalendar({ slots, isCreator, tourId, creatorId, tourStatus, 
     if (isCreator) return STATUS_LABEL[slot.status]
     if (slot.status === 'free') return `€${slot.total_amount}`
     if (slot.status === 'booked' && slot.booked_by === currentUserId) return 'Tua prenotaz.'
+    if (slot.status === 'confirmed' && slot.booked_by === currentUserId) return 'Confermato'
     return 'Occupato'
   }
 

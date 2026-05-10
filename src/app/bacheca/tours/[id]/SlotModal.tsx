@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { createClient } from '@/lib/supabase/client'
-import { bookSlot, confirmSlot, cancelSlot, updateSlot, reactivateSlot } from '../actions'
+import { bookSlot, confirmSlot, confirmSlotWithChanges, cancelSlot, updateSlot, reactivateSlot } from '../actions'
 import { genrePillClass } from '@/lib/genreColors'
 import type { TourSlotWithBooker, Genre } from '@/types'
 
@@ -24,11 +24,17 @@ export function SlotModal({ slot, isCreator, tourId, creatorId, currentUserId, t
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Edit mode (creator only)
+  // Edit mode (creator only) — riattiva slot cancellati
   const [editMode, setEditMode] = useState(slot.status === 'cancelled')
   const [editStart, setEditStart] = useState(slot.start_time.slice(0, 5))
   const [editDuration, setEditDuration] = useState(String(slot.duration_hours))
   const [editRate, setEditRate] = useState(String(slot.hourly_rate))
+
+  // Negoziazione (creator, slot booked) — modifica e accetta
+  const [negotiateMode, setNegotiateMode] = useState(false)
+  const [negStart, setNegStart] = useState(slot.start_time.slice(0, 5))
+  const [negDuration, setNegDuration] = useState(String(slot.duration_hours))
+  const [negRate, setNegRate] = useState(String(slot.hourly_rate))
 
   // Messaggio opzionale (solo photographer in fase di prenotazione)
   const [message, setMessage] = useState('')
@@ -82,6 +88,16 @@ export function SlotModal({ slot, isCreator, tourId, creatorId, currentUserId, t
 
   async function handleConfirm() {
     await run(() => confirmSlot(slot.id, tourId))
+  }
+
+  async function handleConfirmWithChanges() {
+    const dur = parseFloat(negDuration)
+    const rate = parseFloat(negRate)
+    if (!negStart || !dur || dur <= 0 || !rate || rate <= 0) {
+      setError('Valori non validi.')
+      return
+    }
+    await run(() => confirmSlotWithChanges(slot.id, tourId, negStart, dur, rate))
   }
 
   async function handleCancel() {
@@ -243,7 +259,7 @@ export function SlotModal({ slot, isCreator, tourId, creatorId, currentUserId, t
         {/* Actions */}
         <div className="space-y-2 pt-1">
           {/* CREATOR ACTIONS */}
-          {isCreator && !editMode && (
+          {isCreator && !editMode && !negotiateMode && (
             <>
               {slot.status === 'booked' && (
                 <>
@@ -252,14 +268,21 @@ export function SlotModal({ slot, isCreator, tourId, creatorId, currentUserId, t
                     disabled={loading}
                     className="w-full rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 px-4 py-2.5 text-sm font-semibold transition-colors"
                   >
-                    {loading ? 'Conferma…' : 'Conferma prenotazione'}
+                    {loading ? 'Conferma…' : 'Conferma così com\'è'}
+                  </button>
+                  <button
+                    onClick={() => setNegotiateMode(true)}
+                    disabled={loading}
+                    className="w-full rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 disabled:opacity-50 px-4 py-2.5 text-sm font-semibold transition-colors"
+                  >
+                    Modifica e accetta
                   </button>
                   <button
                     onClick={handleCancel}
                     disabled={loading}
                     className="w-full rounded-xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-400 disabled:opacity-50 px-4 py-2.5 text-sm font-semibold transition-colors"
                   >
-                    {loading ? '…' : 'Annulla prenotazione'}
+                    {loading ? '…' : 'Rifiuta prenotazione'}
                   </button>
                 </>
               )}
@@ -281,6 +304,47 @@ export function SlotModal({ slot, isCreator, tourId, creatorId, currentUserId, t
                 </button>
               )}
             </>
+          )}
+
+          {/* Negoziazione: modifica orario/durata/cachet e accetta */}
+          {isCreator && negotiateMode && (
+            <div className="space-y-3">
+              <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-3 py-2">
+                <p className="text-xs text-cyan-300">Modifica le condizioni e conferma</p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-neutral-500">Ora inizio</label>
+                <input type="time" value={negStart} onChange={(e) => setNegStart(e.target.value)}
+                  className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-500/20" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-neutral-500">Durata (ore)</label>
+                <input type="number" min={0.5} step={0.5} value={negDuration} onChange={(e) => setNegDuration(e.target.value)}
+                  className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-500/20" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-neutral-500">Cachet orario (€/h)</label>
+                <input type="number" min={1} value={negRate} onChange={(e) => setNegRate(e.target.value)}
+                  className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-500/20" />
+              </div>
+              <p className="text-xs text-neutral-600">
+                Totale: €{(parseFloat(negDuration || '0') * parseFloat(negRate || '0')).toFixed(0)}
+              </p>
+              <button
+                onClick={handleConfirmWithChanges}
+                disabled={loading}
+                className="w-full rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white px-4 py-2.5 text-sm font-semibold transition-colors"
+              >
+                {loading ? 'Conferma…' : 'Accetto a queste condizioni'}
+              </button>
+              <button
+                onClick={() => setNegotiateMode(false)}
+                disabled={loading}
+                className="w-full rounded-xl border border-neutral-700 hover:bg-neutral-800 text-neutral-400 px-4 py-2.5 text-sm font-semibold transition-colors"
+              >
+                Indietro
+              </button>
+            </div>
           )}
 
           {/* Edit mode save */}

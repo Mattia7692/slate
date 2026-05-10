@@ -215,13 +215,14 @@ export async function bookSlot(slotId: string, tourId: string, creatorId: string
   const msgPart = message?.trim() ? ` · "${message.trim().slice(0, 80)}"` : ''
 
   // Notifica alla modella
-  await adminClient.from('notifications').insert({
+  const { error: notifError } = await adminClient.from('notifications').insert({
     user_id: creatorId,
     type: 'project_update',
     title: 'Nuova prenotazione slot',
     body: `${myProfile?.full_name ?? 'Un fotografo'} ha prenotato lo slot del ${slotDate} alle ${startTime.slice(0, 5)}${msgPart}.`,
     data: { tour_id: tourId, slot_id: slotId },
   })
+  if (notifError) console.error('bookSlot notification error:', notifError.message)
 
   revalidatePath(`/bacheca/tours/${tourId}`)
   return { error: null }
@@ -233,6 +234,14 @@ export async function confirmSlot(slotId: string, tourId: string) {
   if (!user) redirect('/auth/login')
 
   const adminClient = createAdminClient()
+
+  // Fetch slot per notificare il fotografo
+  const { data: slot } = await adminClient
+    .from('tour_slots')
+    .select('booked_by, slot_date, start_time, end_time, total_amount')
+    .eq('id', slotId)
+    .single()
+
   const { error } = await adminClient
     .from('tour_slots')
     .update({ status: 'confirmed' })
@@ -240,6 +249,88 @@ export async function confirmSlot(slotId: string, tourId: string) {
     .eq('tour_id', tourId)
 
   if (error) return { error: error.message }
+
+  // Notifica al fotografo
+  if (slot?.booked_by) {
+    const { data: creatorProfile } = await adminClient
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .single()
+
+    await adminClient.from('notifications').insert({
+      user_id: slot.booked_by,
+      type: 'project_update',
+      title: 'Prenotazione confermata',
+      body: `${creatorProfile?.full_name ?? 'La modella'} ha confermato il tuo slot del ${slot.slot_date} alle ${slot.start_time.slice(0, 5)}.`,
+      data: { tour_id: tourId, slot_id: slotId },
+    })
+  }
+
+  revalidatePath(`/bacheca/tours/${tourId}`)
+  return { error: null }
+}
+
+export async function confirmSlotWithChanges(
+  slotId: string,
+  tourId: string,
+  startTime: string,
+  durationHours: number,
+  hourlyRate: number,
+) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/auth/login')
+
+  const adminClient = createAdminClient()
+
+  const { data: slot } = await adminClient
+    .from('tour_slots')
+    .select('booked_by, slot_date')
+    .eq('id', slotId)
+    .single()
+
+  if (!slot) return { error: 'Slot non trovato.' }
+
+  // Calcola nuovo end_time
+  const base = new Date()
+  const [h, m] = startTime.split(':').map(Number)
+  base.setHours(h, m, 0, 0)
+  const endTime = format(addHours(base, durationHours), 'HH:mm')
+  const totalAmount = durationHours * hourlyRate
+
+  const { error } = await adminClient
+    .from('tour_slots')
+    .update({
+      start_time: startTime,
+      end_time: endTime,
+      duration_hours: durationHours,
+      hourly_rate: hourlyRate,
+      total_amount: totalAmount,
+      status: 'confirmed',
+    })
+    .eq('id', slotId)
+    .eq('tour_id', tourId)
+
+  if (error) return { error: error.message }
+
+  // Notifica al fotografo con le nuove condizioni
+  if (slot.booked_by) {
+    const { data: creatorProfile } = await adminClient
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .single()
+
+    await adminClient.from('notifications').insert({
+      user_id: slot.booked_by,
+      type: 'project_update',
+      title: 'Prenotazione confermata con modifiche',
+      body: `${creatorProfile?.full_name ?? 'La modella'} ha accettato a queste condizioni: ${startTime}–${endTime}, ${durationHours}h, €${totalAmount} totali.`,
+      data: { tour_id: tourId, slot_id: slotId },
+    })
+  }
+
   revalidatePath(`/bacheca/tours/${tourId}`)
   return { error: null }
 }

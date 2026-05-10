@@ -288,6 +288,20 @@ export async function clearReadNotifications() {
   return { error: error?.message ?? null }
 }
 
+export async function clearAllNotifications() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Non autenticato.' }
+
+  const adminClient = createAdminClient()
+  const { error } = await adminClient
+    .from('notifications')
+    .delete()
+    .eq('user_id', user.id)
+
+  return { error: error?.message ?? null }
+}
+
 // ── Segna notifica come letta ─────────────────────────────────────
 
 export async function markNotificationRead(notificationId: string) {

@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { markNotificationRead, clearReadNotifications } from '@/app/invites/actions'
+import { markNotificationRead, clearReadNotifications, clearAllNotifications } from '@/app/invites/actions'
 import { ProposalReviewModal } from './ProposalReviewModal'
 import type { Notification, NotificationType } from '@/types'
 
@@ -127,18 +127,34 @@ export function NotificationBell({ initialNotifications, currentUserId }: Notifi
           <div className="absolute right-0 top-10 w-80 rounded-2xl border border-neutral-800 bg-neutral-950 shadow-2xl overflow-hidden z-50">
             <div className="px-4 py-3 border-b border-neutral-800 flex items-center justify-between gap-2">
               <p className="text-sm font-semibold">Notifiche</p>
-              {notifications.some((n) => n.read) && (
-                <button
-                  onClick={() => {
-                    startTransition(async () => {
-                      await clearReadNotifications()
-                      setNotifications((prev) => prev.filter((n) => !n.read))
-                    })
-                  }}
-                  className="text-[11px] text-neutral-600 hover:text-red-400 transition-colors"
-                >
-                  Elimina lette
-                </button>
+              {notifications.length > 0 && (
+                <div className="flex items-center gap-2">
+                  {notifications.some((n) => n.read) && (
+                    <button
+                      onClick={() => {
+                        startTransition(async () => {
+                          await clearReadNotifications()
+                          setNotifications((prev) => prev.filter((n) => !n.read))
+                        })
+                      }}
+                      className="text-[11px] text-neutral-600 hover:text-red-400 transition-colors"
+                    >
+                      Elimina lette
+                    </button>
+                  )}
+                  {notifications.some((n) => n.read) && <span className="text-neutral-800">·</span>}
+                  <button
+                    onClick={() => {
+                      startTransition(async () => {
+                        await clearAllNotifications()
+                        setNotifications([])
+                      })
+                    }}
+                    className="text-[11px] text-neutral-600 hover:text-red-400 transition-colors"
+                  >
+                    Elimina tutte
+                  </button>
+                </div>
               )}
             </div>
 

@@ -3,19 +3,46 @@
 import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { adminUpdateProfile, awardFounderXp } from './actions'
+import { adminUpdateProfile, adminUpdateProfileGenres, awardFounderXp } from './actions'
 import { AdminAvatarUpload } from './AdminAvatarUpload'
-import type { Profile } from '@/types'
+import { GenrePills } from '@/components/profile/GenrePills'
+import type { Profile, Genre } from '@/types'
 
 export function AdminEditForm({
   profile,
   isFounder,
+  genres,
+  currentGenreIds,
 }: {
   profile: Profile
   isFounder: boolean
+  genres: Genre[]
+  currentGenreIds: string[]
 }) {
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+
+  // Generi
+  const [selectedGenreIds, setSelectedGenreIds] = useState<string[]>(currentGenreIds)
+  const [genresPending, setGenresPending] = useState(false)
+  const [genresFeedback, setGenresFeedback] = useState<{ ok: boolean; msg: string } | null>(null)
+
+  function toggleGenre(id: string) {
+    setSelectedGenreIds((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id])
+    setGenresFeedback(null)
+  }
+
+  function handleSaveGenres() {
+    setGenresPending(true)
+    setGenresFeedback(null)
+    adminUpdateProfileGenres(profile.id, selectedGenreIds).then((res) => {
+      setGenresPending(false)
+      setGenresFeedback(res.error
+        ? { ok: false, msg: res.error }
+        : { ok: true, msg: 'Generi aggiornati.' }
+      )
+    })
+  }
 
   // XP bonus widget
   const [xpDelta, setXpDelta] = useState<string>('')
@@ -129,6 +156,34 @@ export function AdminEditForm({
           </Button>
         </div>
       </form>
+
+      {/* ── GENERI ──────────────────────────────────── */}
+      {genres.length > 0 && (
+        <section className="space-y-4">
+          <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Generi</h2>
+          <GenrePills
+            genres={genres}
+            selected={selectedGenreIds}
+            onToggle={toggleGenre}
+          />
+          <div className="flex items-center gap-4">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleSaveGenres}
+              loading={genresPending}
+              disabled={genresPending}
+            >
+              Salva generi
+            </Button>
+            {genresFeedback && (
+              <p className={['text-xs font-medium', genresFeedback.ok ? 'text-emerald-400' : 'text-red-400'].join(' ')}>
+                {genresFeedback.msg}
+              </p>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* ── BONUS XP — solo Founder ──────────────────── */}
       {isFounder && (

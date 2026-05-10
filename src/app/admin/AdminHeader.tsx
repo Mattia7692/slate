@@ -5,14 +5,25 @@ import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { logout } from '@/app/auth/actions'
 
-const NAV_ITEMS = [
-  { label: 'Gestione profili',     href: '/admin',                    exact: true },
-  { label: 'Candidature',          href: '/admin/applications',        exact: false },
-  { label: 'Codici invito',        href: '/admin/invite-codes',        exact: false },
-  { label: 'Proposte',             href: '/admin/proposals',           exact: false },
-  { label: 'Progetti',             href: '/admin/projects',            exact: false },
-  { label: 'Monitoraggio chat',    href: '/admin/messages',            exact: false },
-  { label: 'Anteprima onboarding', href: '/admin/onboarding-preview',  exact: false },
+const NAV_GROUPS = [
+  {
+    title: 'Area admin',
+    items: [
+      { label: 'Candidature',          href: '/admin/applications',      exact: false },
+      { label: 'Codici invito',        href: '/admin/invite-codes',      exact: false },
+      { label: 'Profili',              href: '/admin',                   exact: true  },
+      { label: 'Anteprima onboarding', href: '/admin/onboarding-preview', exact: false },
+    ],
+  },
+  {
+    title: 'Monitoraggio comunità',
+    items: [
+      { label: 'Proposte',         href: '/admin/proposals', exact: false },
+      { label: 'Progetti',         href: '/admin/projects',  exact: false },
+      { label: 'Chat',             href: '/admin/messages',  exact: false },
+      { label: 'Visioni ed Eventi', href: '/admin/bacheca',  exact: false },
+    ],
+  },
 ]
 
 interface Props {
@@ -97,39 +108,42 @@ export function AdminHeader({ email, pendingApplications }: Props) {
           </div>
 
           {/* Nav */}
-          <nav className="px-3 py-3 flex flex-col gap-0.5">
-            <div className="px-3 py-2 mb-0.5">
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-amber-400 uppercase tracking-wider">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                Area admin
-              </span>
-            </div>
-            {NAV_ITEMS.map(({ label, href, exact }) => {
-              const active = isActive(href, exact)
-              const badge = href === '/admin/applications' && pendingApplications > 0
-                ? pendingApplications
-                : undefined
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  onClick={() => setMenuOpen(false)}
-                  className={[
-                    'flex items-center gap-2 px-3 py-3 rounded-xl text-sm transition-colors',
-                    active
-                      ? 'bg-orange-900 text-neutral-100 font-medium'
-                      : 'text-neutral-400 hover:bg-orange-900/60 hover:text-neutral-200',
-                  ].join(' ')}
-                >
-                  <span className="flex-1">{label}</span>
-                  {badge !== undefined && (
-                    <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-[10px] font-bold text-black flex items-center justify-center leading-none">
-                      {badge > 99 ? '99+' : badge}
-                    </span>
-                  )}
-                </Link>
-              )
-            })}
+          <nav className="px-3 py-3 flex flex-col gap-4">
+            {NAV_GROUPS.map((group) => (
+              <div key={group.title}>
+                <p className="text-[10px] font-semibold text-amber-500/70 uppercase tracking-widest px-3 mb-1">
+                  {group.title}
+                </p>
+                <div className="flex flex-col gap-0.5">
+                  {group.items.map(({ label, href, exact }) => {
+                    const active = isActive(href, exact)
+                    const badge = href === '/admin/applications' && pendingApplications > 0
+                      ? pendingApplications
+                      : undefined
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        onClick={() => setMenuOpen(false)}
+                        className={[
+                          'flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+                          active
+                            ? 'bg-orange-800/60 text-neutral-100'
+                            : 'text-orange-200/60 hover:bg-orange-900/60 hover:text-orange-100',
+                        ].join(' ')}
+                      >
+                        <span className="flex-1">{label}</span>
+                        {badge !== undefined && (
+                          <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-[10px] font-bold text-black flex items-center justify-center leading-none">
+                            {badge > 99 ? '99+' : badge}
+                          </span>
+                        )}
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
         </div>
       )}

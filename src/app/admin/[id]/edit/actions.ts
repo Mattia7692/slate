@@ -95,6 +95,24 @@ export async function uploadAvatarAdmin(
   return { url }
 }
 
+export async function adminUpdateProfileGenres(profileId: string, genreIds: string[]) {
+  await requireAdmin()
+  const admin = createAdminClient()
+
+  await admin.from('profile_genres').delete().eq('profile_id', profileId)
+
+  if (genreIds.length > 0) {
+    const { error } = await admin.from('profile_genres').insert(
+      genreIds.map((genre_id) => ({ profile_id: profileId, genre_id }))
+    )
+    if (error) return { error: error.message }
+  }
+
+  revalidatePath(`/admin/${profileId}`)
+  revalidatePath(`/admin/${profileId}/edit`)
+  return { error: null }
+}
+
 export async function awardFounderXp(profileId: string, delta: number) {
   await requireAdmin()
 

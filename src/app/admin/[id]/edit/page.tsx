@@ -6,7 +6,7 @@ import { requireAdmin } from '@/lib/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isFounder } from '@/lib/founder'
 import { AdminEditForm } from './AdminEditForm'
-import type { Profile } from '@/types'
+import type { Profile, Genre } from '@/types'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -18,11 +18,11 @@ export default async function AdminEditProfilePage({ params }: Props) {
   const { id } = await params
   const admin = createAdminClient()
 
-  const { data: profile } = await admin
-    .from('profiles')
-    .select('*')
-    .eq('id', id)
-    .single()
+  const [{ data: profile }, { data: allGenres }, { data: profileGenres }] = await Promise.all([
+    admin.from('profiles').select('*').eq('id', id).single(),
+    admin.from('genres').select('id, slug, label, order_index').order('order_index'),
+    admin.from('profile_genres').select('genre_id').eq('profile_id', id),
+  ])
 
   if (!profile) notFound()
 
@@ -44,7 +44,12 @@ export default async function AdminEditProfilePage({ params }: Props) {
         <span className="text-neutral-300">Modifica</span>
       </div>
 
-      <AdminEditForm profile={profile as Profile} isFounder={currentIsFounder} />
+      <AdminEditForm
+        profile={profile as Profile}
+        isFounder={currentIsFounder}
+        genres={(allGenres ?? []) as Genre[]}
+        currentGenreIds={(profileGenres ?? []).map((g: { genre_id: string }) => g.genre_id)}
+      />
     </div>
   )
 }

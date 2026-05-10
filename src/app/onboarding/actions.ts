@@ -19,6 +19,7 @@ interface CreateProfilePayload {
   avatar_url: string | null
   portfolio_urls: string[]
   genre_ids: string[]
+  hourly_rate: number | null
 }
 
 export async function createProfile(payload: CreateProfilePayload) {
@@ -57,6 +58,7 @@ export async function createProfile(payload: CreateProfilePayload) {
       oldest_photo_date: payload.oldest_photo_date,
       oldest_photo_exif: payload.oldest_photo_exif,
       avatar_url: payload.avatar_url,
+      hourly_rate: payload.hourly_rate,
       xp: seniorityBonus,
       status: 'pending',
     })

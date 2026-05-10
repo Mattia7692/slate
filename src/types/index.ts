@@ -48,6 +48,7 @@ export interface Profile {
   oldest_photo_date: string | null
   oldest_photo_exif: Record<string, unknown> | null
   avatar_url: string | null
+  hourly_rate: number | null
   xp: number
   level: number
   status: ProfileStatus

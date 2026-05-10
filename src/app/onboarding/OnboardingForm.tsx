@@ -45,6 +45,7 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
   const [step, setStep] = useState(0)
   const [form, setForm] = useState<FormState>(INITIAL_STATE)
   const [selectedGenreIds, setSelectedGenreIds] = useState<string[]>([])
+  const [hourlyRate, setHourlyRate] = useState<string>('')
 
   // Foto più vecchia
   const [oldestPhotoFile, setOldestPhotoFile] = useState<File | null>(null)
@@ -205,6 +206,7 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
         avatar_url: avatarUrl,
         portfolio_urls: portfolioUrls,
         genre_ids: genreIds,
+        hourly_rate: hourlyRate ? parseInt(hourlyRate) : null,
       })
 
       if (result?.error) {
@@ -320,7 +322,7 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
 
       {/* ---- STEP 1: Generi ---- */}
       {step === 1 && (
-        <div className="space-y-5">
+        <div className="space-y-6">
           <div>
             <h2 className="text-lg font-medium">I tuoi generi</h2>
             <p className="text-sm text-neutral-400 mt-1">
@@ -335,6 +337,23 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
           {selectedGenreIds.length === 0 && (
             <p className="text-xs text-neutral-600">Seleziona almeno un genere per continuare.</p>
           )}
+
+          {/* Cachet orario */}
+          <div className="border-t border-neutral-800 pt-5 space-y-2">
+            <label className="text-sm font-medium text-neutral-300">
+              La tua tariffa oraria (€/h)
+            </label>
+            <p className="text-xs text-neutral-600">Facoltativa — comparirà sul tuo profilo pubblico.</p>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              value={hourlyRate}
+              onChange={(e) => setHourlyRate(e.target.value)}
+              placeholder="es. 150"
+              className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20"
+            />
+          </div>
         </div>
       )}
 

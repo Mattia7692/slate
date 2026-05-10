@@ -117,6 +117,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 const years = csy ? new Date().getFullYear() - csy : (profile.years_in_industry as number)
                 return years > 0 ? <span>{years} anni nel settore</span> : null
               })()}
+              {profile.hourly_rate && (
+                <span className="text-emerald-400 font-medium">€{profile.hourly_rate}/h</span>
+              )}
               {avgRating && (
                 <span className="flex items-center gap-1">
                   <span className="text-amber-400">★</span>

@@ -90,6 +90,14 @@ export function AdminEditForm({
 
           <Input label="Città" name="city" defaultValue={profile.city ?? ''} />
           <Input label="Instagram" name="instagram_url" defaultValue={profile.instagram_url ?? ''} placeholder="@username" />
+          <Input
+            label="Tariffa oraria (€/h)"
+            name="hourly_rate"
+            type="number"
+            min={1}
+            defaultValue={profile.hourly_rate ?? undefined}
+            placeholder="es. 150"
+          />
         </section>
 
         <section className="space-y-4">

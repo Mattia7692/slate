@@ -32,6 +32,8 @@ export async function adminUpdateProfile(profileId: string, formData: FormData) 
   const career_start_year = parseInt(formData.get('career_start_year') as string) || null
   const years_in_industry = career_start_year ? yearsFromStartYear(career_start_year) : 0
   const xp = parseInt(formData.get('xp') as string) || 0
+  const hourlyRateRaw = formData.get('hourly_rate') as string | null
+  const hourly_rate = hourlyRateRaw && parseInt(hourlyRateRaw) > 0 ? parseInt(hourlyRateRaw) : null
 
   if (full_name.length < 2) return { error: 'Il nome deve avere almeno 2 caratteri.' }
   if (xp < 0) return { error: 'Gli XP non possono essere negativi.' }
@@ -47,6 +49,7 @@ export async function adminUpdateProfile(profileId: string, formData: FormData) 
       years_in_industry,
       xp,
       level: computeLevel(xp),
+      hourly_rate,
     })
     .eq('id', profileId)
 

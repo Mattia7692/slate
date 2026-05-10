@@ -164,6 +164,20 @@ export function ProfileEditForm({ profile, portfolioItems: initialItems, oldestP
           defaultValue={profile.instagram_url ?? ''}
           placeholder="@username"
         />
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-neutral-300">Tariffa oraria (€/h)</label>
+          <p className="text-xs text-neutral-600">Comparirà sul tuo profilo pubblico.</p>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            name="hourly_rate"
+            defaultValue={profile.hourly_rate ?? ''}
+            placeholder="es. 150"
+            className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20"
+          />
+        </div>
       </section>
 
       {/* Prima foto professionale */}

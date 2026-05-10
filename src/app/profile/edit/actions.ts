@@ -22,10 +22,12 @@ export async function updateProfile(formData: FormData) {
   const avatar_url = (formData.get('avatar_url') as string | null) || null
   const genreIdsRaw = (formData.get('genre_ids') as string | null) ?? ''
   const genreIds = genreIdsRaw ? genreIdsRaw.split(',').filter(Boolean) : []
+  const hourlyRateRaw = formData.get('hourly_rate') as string | null
+  const hourly_rate = hourlyRateRaw && parseInt(hourlyRateRaw) > 0 ? parseInt(hourlyRateRaw) : null
 
   const { error } = await supabase
     .from('profiles')
-    .update({ full_name, bio: bio || null, city: city || null, instagram_url: instagram_url || null, avatar_url })
+    .update({ full_name, bio: bio || null, city: city || null, instagram_url: instagram_url || null, avatar_url, hourly_rate })
     .eq('id', user.id)
 
   if (error) return { error: error.message }

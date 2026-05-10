@@ -446,6 +446,117 @@ export async function addSlot(
   return { error: null }
 }
 
+export async function updateTourEvent(
+  tourId: string,
+  payload: {
+    title: string
+    city: string
+    role_needed: 'photographer' | 'model'
+    hourly_rate: number
+    location_available: boolean
+    location: string | null
+  }
+) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/auth/login')
+
+  const adminClient = createAdminClient()
+  const { error } = await adminClient
+    .from('tours')
+    .update({
+      title: payload.title.trim(),
+      city: payload.city.trim(),
+      role_needed: payload.role_needed,
+      hourly_rate: payload.hourly_rate,
+      location_available: payload.location_available,
+      location: payload.location_available ? payload.location : null,
+    })
+    .eq('id', tourId)
+    .eq('creator_id', user.id)
+
+  if (error) return { error: error.message }
+  revalidatePath(`/bacheca/tours/${tourId}`)
+  revalidatePath('/bacheca')
+  return { error: null }
+}
+
+export type BookedSlotConflict = {
+  id: string
+  slot_date: string
+  start_time: string
+  booker_name: string
+  booker_id: string
+}
+
+export async function deleteTourEvent(
+  tourId: string,
+  force = false,
+): Promise<{ ok: true } | { conflict: BookedSlotConflict[] } | { error: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Non autenticato.' }
+
+  const adminClient = createAdminClient()
+
+  // Verifica che sia il creator
+  const { data: tour } = await adminClient
+    .from('tours')
+    .select('id, title, creator_id')
+    .eq('id', tourId)
+    .eq('creator_id', user.id)
+    .single()
+
+  if (!tour) return { error: 'Evento non trovato o non autorizzato.' }
+
+  // Cerca slot prenotati/confermati
+  const { data: bookedSlots } = await adminClient
+    .from('tour_slots')
+    .select('id, slot_date, start_time, booked_by, booker:profiles!tour_slots_booked_by_fkey(full_name)')
+    .eq('tour_id', tourId)
+    .in('status', ['booked', 'confirmed'])
+
+  const conflicts: BookedSlotConflict[] = (bookedSlots ?? []).map((s) => ({
+    id: s.id,
+    slot_date: s.slot_date,
+    start_time: s.start_time,
+    booker_id: s.booked_by as string,
+    booker_name: (s.booker as unknown as { full_name: string } | null)?.full_name ?? 'Utente',
+  }))
+
+  if (!force && conflicts.length > 0) {
+    return { conflict: conflicts }
+  }
+
+  // Notifica i booker se force
+  if (force && conflicts.length > 0) {
+    const { data: creatorProfile } = await adminClient
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .single()
+
+    const uniqueBookers = [...new Set(conflicts.map((c) => c.booker_id))]
+    await adminClient.from('notifications').insert(
+      uniqueBookers.map((bookerId) => ({
+        user_id: bookerId,
+        type: 'project_update',
+        title: 'Evento annullato',
+        body: `${creatorProfile?.full_name ?? 'Il creatore'} ha annullato l'evento "${tour.title}". Ci scusiamo per il disagio.`,
+        data: {},
+      }))
+    )
+  }
+
+  // Elimina tutto
+  await adminClient.from('tour_slots').delete().eq('tour_id', tourId)
+  await adminClient.from('tour_images').delete().eq('tour_id', tourId)
+  await adminClient.from('tours').delete().eq('id', tourId)
+
+  revalidatePath('/bacheca')
+  return { ok: true }
+}
+
 export async function closeTour(tourId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

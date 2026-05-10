@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { AppNav } from '@/components/layout/AppNav'
 import { TourCalendar } from './TourCalendar'
+import { CreatorActions } from './CreatorActions'
 import { format, parseISO, differenceInDays } from 'date-fns'
 import { genrePillClass } from '@/lib/genreColors'
 import { it } from 'date-fns/locale'
@@ -189,22 +190,37 @@ export default async function TourDetailPage({ params }: Props) {
           </div>
         )}
 
-        {/* Creator */}
-        <div className="flex items-center gap-3 border-t border-neutral-800 pt-4">
-          <div className="w-9 h-9 rounded-full overflow-hidden bg-neutral-700 shrink-0 flex items-center justify-center">
-            {tour.creator.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={tour.creator.avatar_url} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-xs font-semibold text-neutral-200">
-                {tour.creator.full_name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
-              </span>
-            )}
+        {/* Creator row — info + azioni */}
+        <div className="flex items-center justify-between gap-3 border-t border-neutral-800 pt-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full overflow-hidden bg-neutral-700 shrink-0 flex items-center justify-center">
+              {tour.creator.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={tour.creator.avatar_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-xs font-semibold text-neutral-200">
+                  {tour.creator.full_name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
+                </span>
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-medium">{tour.creator.full_name}</p>
+              <p className="text-xs text-neutral-500">Lv.{tour.creator.level} · {days} {days === 1 ? 'giorno' : 'giorni'} di evento</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-medium">{tour.creator.full_name}</p>
-            <p className="text-xs text-neutral-500">Lv.{tour.creator.level} · {days} {days === 1 ? 'giorno' : 'giorni'} di evento</p>
-          </div>
+          {isCreator && (
+            <CreatorActions
+              tourId={tour.id}
+              initial={{
+                title: tour.title,
+                city: tour.city,
+                role_needed: tour.role_needed,
+                hourly_rate: tour.hourly_rate,
+                location_available: tour.location_available,
+                location: tour.location,
+              }}
+            />
+          )}
         </div>
 
         {/* Calendar */}

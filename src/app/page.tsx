@@ -155,9 +155,25 @@ export default function LandingPage() {
     <div className="bg-white text-neutral-900 antialiased">
 
       {/* ── HERO ──────────────────────────────────────────────── */}
-      <section className="flex flex-col items-center justify-center text-center px-6 py-28 md:py-40 max-w-3xl mx-auto">
+      {/* Topbar con i due bottoni */}
+      <div className="flex items-center justify-end gap-3 px-6 pt-6">
+        <Link
+          href="/auth/login"
+          className="rounded-full border border-neutral-300 px-6 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 transition-colors"
+        >
+          Accedi
+        </Link>
+        <button
+          onClick={openModal}
+          className="bg-neutral-900 text-white rounded-full px-6 py-2.5 text-sm font-semibold hover:bg-neutral-700 transition-colors touch-manipulation"
+        >
+          Richiedi l&apos;accesso
+        </button>
+      </div>
+
+      <section className="flex flex-col items-center justify-center text-center px-6 py-20 md:py-36 max-w-3xl mx-auto">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="Slate" className="h-64 w-auto mx-auto mb-8 invert mix-blend-multiply" />
+        <img src="/logo.png" alt="Slate" className="h-64 w-auto max-w-full object-contain mx-auto mb-8 invert mix-blend-multiply" />
         <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-tight mb-6">
           La fotografia professionale merita un posto serio.
         </h1>
@@ -324,11 +340,8 @@ export default function LandingPage() {
       </section>
 
       {/* ── FOOTER minimalista ────────────────────────────────── */}
-      <footer className="border-t border-neutral-100 px-6 py-8 flex items-center justify-between text-xs text-neutral-400">
+      <footer className="border-t border-neutral-100 px-6 py-8 text-center text-xs text-neutral-400">
         <span className="font-semibold tracking-tight text-neutral-900">Slate</span>
-        <Link href="/auth/login" className="hover:text-neutral-600 transition-colors">
-          Accedi →
-        </Link>
       </footer>
 
       {/* ── MODAL CANDIDATURA ─────────────────────────────────── */}

@@ -347,7 +347,7 @@ export async function reactivateSlot(
   // Controlla sovrapposizioni con slot attivi (non cancellati)
   const { data: overlapping } = await adminClient
     .from('tour_slots')
-    .select('id')
+    .select('id, status')
     .eq('tour_id', tourId)
     .eq('slot_date', slot.slot_date)
     .neq('id', slotId)
@@ -356,7 +356,15 @@ export async function reactivateSlot(
     .gt('end_time', startTime)
 
   if (overlapping && overlapping.length > 0) {
-    return { error: 'Lo slot si sovrappone a uno slot esistente.' }
+    const blocked = overlapping.filter((s) => s.status === 'booked' || s.status === 'confirmed')
+    if (blocked.length > 0) {
+      return { error: 'Non puoi usare questo orario: ci sono prenotazioni attive che si sovrappongono.' }
+    }
+    // Cancella slot liberi sovrapposti
+    await adminClient
+      .from('tour_slots')
+      .update({ status: 'cancelled' })
+      .in('id', overlapping.map((s) => s.id))
   }
 
   const { error } = await adminClient
@@ -399,7 +407,7 @@ export async function addSlot(
   // Controlla sovrapposizioni con slot attivi
   const { data: overlapping } = await adminClient
     .from('tour_slots')
-    .select('id')
+    .select('id, status')
     .eq('tour_id', tourId)
     .eq('slot_date', slotDate)
     .neq('status', 'cancelled')
@@ -407,7 +415,15 @@ export async function addSlot(
     .gt('end_time', startTime)
 
   if (overlapping && overlapping.length > 0) {
-    return { error: 'Lo slot si sovrappone a uno slot esistente.' }
+    const blocked = overlapping.filter((s) => s.status === 'booked' || s.status === 'confirmed')
+    if (blocked.length > 0) {
+      return { error: 'Non puoi usare questo orario: ci sono prenotazioni attive che si sovrappongono.' }
+    }
+    // Cancella slot liberi sovrapposti
+    await adminClient
+      .from('tour_slots')
+      .update({ status: 'cancelled' })
+      .in('id', overlapping.map((s) => s.id))
   }
 
   const { error } = await adminClient

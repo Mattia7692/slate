@@ -18,6 +18,7 @@ const STEPS = ['Info base', 'Slot', 'Generi', 'Foto'] as const
 interface Step1 {
   title: string
   city: string
+  role_needed: 'photographer' | 'model' | ''
   location_available: boolean
   location_description: string
   location_address: string
@@ -40,6 +41,7 @@ interface Step2 {
 const DEFAULT_S1: Step1 = {
   title: '',
   city: '',
+  role_needed: '',
   location_available: false,
   location_description: '',
   location_address: '',
@@ -119,6 +121,7 @@ export function NewTourForm({ genres }: Props) {
       return (
         s1.title.trim().length >= 2 &&
         s1.city.trim().length >= 2 &&
+        s1.role_needed !== '' &&
         !!s1.start_date &&
         !!s1.end_date &&
         s1.end_date >= s1.start_date &&
@@ -172,6 +175,7 @@ export function NewTourForm({ genres }: Props) {
       const result = await createTour({
         title: s1.title.trim(),
         city: s1.city.trim(),
+        role_needed: s1.role_needed as 'photographer' | 'model',
         location_available: s1.location_available,
         location: locationValue,
         start_date: s1.start_date,
@@ -229,11 +233,41 @@ export function NewTourForm({ genres }: Props) {
         <div className="space-y-4">
           <h2 className="text-lg font-medium">Info base</h2>
 
+          {/* Chi stai cercando? */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-neutral-300">
+              Chi stai cercando? <span className="text-red-500">*</span>
+            </label>
+            <div className="flex gap-3">
+              {(['photographer', 'model'] as const).map((role) => {
+                const label = role === 'photographer' ? 'Fotografo' : 'Modella/o'
+                const active = s1.role_needed === role
+                return (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => set1('role_needed', role)}
+                    className={[
+                      'flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors',
+                      active
+                        ? role === 'photographer'
+                          ? 'border-blue-500/60 bg-blue-500/15 text-blue-300'
+                          : 'border-violet-500/60 bg-violet-500/15 text-violet-300'
+                        : 'border-neutral-700 bg-neutral-900 text-neutral-500 hover:border-neutral-600 hover:text-neutral-300',
+                    ].join(' ')}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
           <Input
-            label="Titolo del tour"
+            label="Titolo dell'evento"
             value={s1.title}
             onChange={(e) => set1('title', e.target.value)}
-            placeholder="Es. Milano Aprile 2026"
+            placeholder="es. Milano aprile 2026, Foto Fair Roma..."
           />
 
           <Input
@@ -423,7 +457,7 @@ export function NewTourForm({ genres }: Props) {
         <div className="space-y-5">
           <div>
             <h2 className="text-lg font-medium">Generi</h2>
-            <p className="text-sm text-neutral-400 mt-1">Seleziona i generi che sei disposta a scattare in questo tour.</p>
+            <p className="text-sm text-neutral-400 mt-1">Seleziona i generi fotografici per questo evento.</p>
           </div>
           <GenrePills genres={genres} selected={selectedGenreIds} onToggle={toggleGenre} />
           {selectedGenreIds.length === 0 && (
@@ -436,7 +470,7 @@ export function NewTourForm({ genres }: Props) {
       {step === 3 && (
         <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-medium">Foto del tour</h2>
+            <h2 className="text-lg font-medium">Foto dell'evento</h2>
             <p className="text-sm text-neutral-400 mt-1">Fino a 5 foto. La prima sarà la cover. Almeno 1 obbligatoria.</p>
           </div>
 
@@ -490,7 +524,7 @@ export function NewTourForm({ genres }: Props) {
           </Button>
         ) : (
           <Button onClick={handleSubmit} loading={loading} disabled={loading} className="flex-1">
-            {loading ? 'Pubblicazione…' : 'Pubblica tour'}
+            {loading ? 'Pubblicazione…' : 'Pubblica evento'}
           </Button>
         )}
       </div>

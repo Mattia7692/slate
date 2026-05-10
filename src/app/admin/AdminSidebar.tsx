@@ -31,7 +31,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: 'Proposte',   href: '/admin/proposals', exact: false },
       { label: 'Progetti',   href: '/admin/projects',  exact: false },
       { label: 'Chat',       href: '/admin/messages',  exact: false },
-      { label: 'Visioni e Tour', href: '/admin/bacheca', exact: false },
+      { label: 'Visioni ed Eventi', href: '/admin/bacheca', exact: false },
     ],
   },
 ]

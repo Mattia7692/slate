@@ -78,11 +78,11 @@ export default async function AdminBachecaPage({ searchParams }: PageProps) {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
-        <h1 className="text-lg font-semibold text-neutral-100">Visioni e Tour</h1>
+        <h1 className="text-lg font-semibold text-neutral-100">Visioni ed Eventi</h1>
         <p className="text-xs text-neutral-500 mt-1">
           {activeTab === 'visioni'
             ? `${visions.length} vision${visions.length === 1 ? 'e' : 'i'}`
-            : `${tours.length} tour`}
+            : `${tours.length} ${tours.length === 1 ? 'evento' : 'eventi'}`}
         </p>
       </div>
 
@@ -99,7 +99,7 @@ export default async function AdminBachecaPage({ searchParams }: PageProps) {
                 : 'border-transparent text-orange-200/40 hover:text-orange-200/70',
             ].join(' ')}
           >
-            {t === 'visioni' ? 'Visioni' : 'Tour'}
+            {t === 'visioni' ? 'Visioni' : 'Eventi'}
           </Link>
         ))}
       </div>
@@ -151,11 +151,11 @@ export default async function AdminBachecaPage({ searchParams }: PageProps) {
         )
       )}
 
-      {/* ── TOUR ── */}
+      {/* ── EVENTI ── */}
       {activeTab === 'tour' && (
         tours.length === 0 ? (
           <div className="rounded-xl border border-neutral-800 bg-neutral-900/30 px-6 py-12 text-center">
-            <p className="text-sm text-neutral-600">Nessun tour creato.</p>
+            <p className="text-sm text-neutral-600">Nessun evento creato.</p>
           </div>
         ) : (
           <div className="space-y-2">

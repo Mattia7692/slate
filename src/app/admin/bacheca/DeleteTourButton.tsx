@@ -7,7 +7,7 @@ export function DeleteTourButton({ tourId }: { tourId: string }) {
   const [loading, setLoading] = useState(false)
 
   async function handle() {
-    if (!confirm('Eliminare questo tour?')) return
+    if (!confirm('Eliminare questo evento?')) return
     setLoading(true)
     await deleteTour(tourId)
     setLoading(false)

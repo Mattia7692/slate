@@ -203,7 +203,7 @@ export default async function TourDetailPage({ params }: Props) {
           </div>
           <div>
             <p className="text-sm font-medium">{tour.creator.full_name}</p>
-            <p className="text-xs text-neutral-500">Lv.{tour.creator.level} · {days} {days === 1 ? 'giorno' : 'giorni'} di tour</p>
+            <p className="text-xs text-neutral-500">Lv.{tour.creator.level} · {days} {days === 1 ? 'giorno' : 'giorni'} di evento</p>
           </div>
         </div>
 

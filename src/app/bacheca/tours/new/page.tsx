@@ -40,7 +40,7 @@ export default async function NewTourPage() {
 
       <div className="max-w-lg mx-auto px-6 py-8">
         <div className="mb-8">
-          <h1 className="text-xl font-semibold tracking-tight">Nuovo tour</h1>
+          <h1 className="text-xl font-semibold tracking-tight">Crea un evento</h1>
           <p className="text-sm text-neutral-500 mt-1">Crea il tuo calendario di disponibilità</p>
         </div>
 

@@ -84,14 +84,14 @@ export default async function BachecaPage({ searchParams }: BachecaPageProps) {
             <p className="text-sm text-neutral-500 mt-0.5">
               {activeTab === 'visioni'
                 ? `${visions.length} ${visions.length === 1 ? 'visione aperta' : 'visioni aperte'}`
-                : `${tours.length} ${tours.length === 1 ? 'tour aperto' : 'tour aperti'}`}
+                : `${tours.length} ${tours.length === 1 ? 'evento aperto' : 'eventi aperti'}`}
             </p>
           </div>
           <Link
             href={activeTab === 'visioni' ? '/bacheca/nuova' : '/bacheca/tours/new'}
             className="inline-flex items-center gap-2 rounded-lg bg-white text-neutral-900 px-4 py-2 text-sm font-semibold hover:bg-neutral-200 transition-colors"
           >
-            + {activeTab === 'visioni' ? 'Nuova visione' : 'Nuovo tour'}
+            + {activeTab === 'visioni' ? 'Nuova visione' : 'Nuovo evento'}
           </Link>
         </div>
 
@@ -108,7 +108,7 @@ export default async function BachecaPage({ searchParams }: BachecaPageProps) {
                   : 'border-transparent text-neutral-500 hover:text-neutral-300',
               ].join(' ')}
             >
-              {t === 'visioni' ? 'Visioni' : 'Tour'}
+              {t === 'visioni' ? 'Visioni' : 'Eventi'}
             </Link>
           ))}
         </div>
@@ -172,13 +172,13 @@ export default async function BachecaPage({ searchParams }: BachecaPageProps) {
           )
         )}
 
-        {/* ── Tour ── */}
+        {/* ── Eventi ── */}
         {activeTab === 'tour' && (
           tours.length === 0 ? (
             <div className="py-32 text-center space-y-3">
-              <p className="text-neutral-400">Nessun tour aperto al momento.</p>
+              <p className="text-neutral-400">Nessun evento aperto al momento.</p>
               <Link href="/bacheca/tours/new" className="text-sm text-neutral-600 hover:text-neutral-300 transition-colors">
-                Crea il tuo primo tour →
+                Crea il tuo primo evento →
               </Link>
             </div>
           ) : (
@@ -203,8 +203,8 @@ export default async function BachecaPage({ searchParams }: BachecaPageProps) {
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                       <div className="absolute bottom-3 left-3">
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
-                          Aperto
+                        <span className={['text-[11px] font-semibold px-2 py-0.5 rounded-full border', ROLE_STYLE[tour.role_needed]].join(' ')}>
+                          Cerca {ROLE_LABEL[tour.role_needed]}
                         </span>
                       </div>
                     </div>

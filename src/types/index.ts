@@ -228,6 +228,7 @@ export interface Tour {
   hourly_rate: number
   cover_url: string | null
   status: TourStatus
+  role_needed: 'photographer' | 'model'
   genre_ids: string[]
   slot_duration_hours: number
   morning_slots: number

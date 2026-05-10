@@ -64,32 +64,39 @@ export function NotificationBell({ initialNotifications, currentUserId }: Notifi
     return () => { supabase.removeChannel(channel) }
   }, [currentUserId])
 
-  function handleNotificationClick(n: Notification) {
-    // Inviti ricevuti → apri il modal proposta
-    if (n.type === 'invite_received') {
-      const inviteId = n.data?.invite_id as string | undefined
-      if (!inviteId) return
-      setOpen(false)
-      setOpenInviteId(inviteId)
-      // Segna come letta
-      if (!n.read) {
-        startTransition(async () => {
-          await markNotificationRead(n.id)
-          setNotifications((prev) => prev.map((x) => x.id === n.id ? { ...x, read: true } : x))
-        })
-      }
-      return
-    }
-
-    // Altre notifiche → naviga al progetto se presente
+  function markRead(n: Notification) {
     if (!n.read) {
       startTransition(async () => {
         await markNotificationRead(n.id)
         setNotifications((prev) => prev.map((x) => x.id === n.id ? { ...x, read: true } : x))
       })
     }
+  }
+
+  function handleNotificationClick(n: Notification) {
+    // Slot tour → naviga alla pagina del tour
+    const tourId = n.data?.tour_id as string | undefined
+    if (tourId) {
+      markRead(n)
+      setOpen(false)
+      router.push(`/bacheca/tours/${tourId}`)
+      return
+    }
+
+    // Inviti ricevuti → apri il modal proposta
+    if (n.type === 'invite_received') {
+      const inviteId = n.data?.invite_id as string | undefined
+      if (!inviteId) return
+      markRead(n)
+      setOpen(false)
+      setOpenInviteId(inviteId)
+      return
+    }
+
+    // Aggiornamenti progetto → naviga al progetto
     const projectId = n.data?.project_id as string | undefined
     if (projectId) {
+      markRead(n)
       setOpen(false)
       router.push(`/projects/${projectId}`)
     }
@@ -143,7 +150,7 @@ export function NotificationBell({ initialNotifications, currentUserId }: Notifi
               <div className="max-h-[420px] overflow-y-auto divide-y divide-neutral-800/50">
                 {notifications.map((n) => {
                   const isInvite = n.type === 'invite_received'
-                  const hasAction = isInvite || !!(n.data?.project_id)
+                  const hasAction = isInvite || !!(n.data?.project_id) || !!(n.data?.tour_id)
                   return (
                     <div
                       key={n.id}
@@ -156,7 +163,7 @@ export function NotificationBell({ initialNotifications, currentUserId }: Notifi
                     >
                       <div className="flex items-start gap-2.5">
                         <span className="text-base leading-none mt-0.5 shrink-0">
-                          {TYPE_ICON[n.type]}
+                          {n.data?.tour_id ? '📅' : TYPE_ICON[n.type]}
                         </span>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium leading-tight">{n.title}</p>

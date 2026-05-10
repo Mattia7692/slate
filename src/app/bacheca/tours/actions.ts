@@ -208,7 +208,7 @@ export async function bookSlot(slotId: string, tourId: string, creatorId: string
   // Notifica alla modella
   await adminClient.from('notifications').insert({
     user_id: creatorId,
-    type: 'invite_received',
+    type: 'project_update',
     title: 'Nuova prenotazione slot',
     body: `${myProfile?.full_name ?? 'Un fotografo'} ha prenotato lo slot del ${slotDate} alle ${startTime}.`,
     data: { tour_id: tourId, slot_id: slotId },

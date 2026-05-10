@@ -292,7 +292,7 @@ export function NewTourForm({ genres }: Props) {
                   s1.location_available ? 'translate-x-5' : 'translate-x-1',
                 ].join(' ')} />
               </div>
-              <span className="text-sm text-neutral-300">Ho una location disponibile</span>
+              <span className="text-sm text-neutral-300">Dettagli della location (se disponibile)</span>
             </label>
 
             {s1.location_available && (

@@ -236,11 +236,11 @@ export function NewTourForm({ genres }: Props) {
           {/* Chi stai cercando? */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-neutral-300">
-              Chi stai cercando? <span className="text-red-500">*</span>
+              A chi è rivolto? <span className="text-red-500">*</span>
             </label>
             <div className="flex gap-3">
               {(['photographer', 'model'] as const).map((role) => {
-                const label = role === 'photographer' ? 'Fotografo' : 'Modella/o'
+                const label = role === 'photographer' ? 'Fotograf*' : 'Modell*'
                 const active = s1.role_needed === role
                 return (
                   <button

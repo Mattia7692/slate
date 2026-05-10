@@ -259,20 +259,46 @@ export async function updateSlot(slotId: string, tourId: string, durationHours: 
 
   const adminClient = createAdminClient()
 
-  // Ricalcola end_time dal start_time
+  // Leggi slot corrente
   const { data: slot } = await adminClient
     .from('tour_slots')
-    .select('start_time')
+    .select('start_time, slot_date')
     .eq('id', slotId)
     .single()
 
   if (!slot) return { error: 'Slot non trovato.' }
 
+  // Ricalcola end_time
   const base = new Date()
   const [h, m] = slot.start_time.split(':').map(Number)
   base.setHours(h, m, 0, 0)
   const end = addHours(base, durationHours)
   const endTime = format(end, 'HH:mm')
+
+  // Trova slot dello stesso tour/giorno che iniziano dentro il nuovo intervallo
+  // (start_time > start_time dello slot corrente E start_time < nuovo end_time)
+  const { data: overlapping } = await adminClient
+    .from('tour_slots')
+    .select('id, status')
+    .eq('tour_id', tourId)
+    .eq('slot_date', slot.slot_date)
+    .neq('id', slotId)
+    .gt('start_time', slot.start_time)
+    .lt('start_time', endTime)
+
+  if (overlapping && overlapping.length > 0) {
+    const blocked = overlapping.filter((s) => s.status === 'booked' || s.status === 'confirmed')
+    if (blocked.length > 0) {
+      return { error: 'Non puoi allungare questo slot: ci sono prenotazioni attive che si sovrappongono.' }
+    }
+
+    // Cancella gli slot liberi sovrapposti
+    const ids = overlapping.map((s) => s.id)
+    await adminClient
+      .from('tour_slots')
+      .update({ status: 'cancelled' })
+      .in('id', ids)
+  }
 
   const { error } = await adminClient
     .from('tour_slots')

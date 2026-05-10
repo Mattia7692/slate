@@ -18,10 +18,11 @@ export default async function AdminEditProfilePage({ params }: Props) {
   const { id } = await params
   const admin = createAdminClient()
 
-  const [{ data: profile }, { data: allGenres }, { data: profileGenres }] = await Promise.all([
+  const [{ data: profile }, { data: allGenres }, { data: profileGenres }, { data: authUser }] = await Promise.all([
     admin.from('profiles').select('*').eq('id', id).single(),
     admin.from('genres').select('id, slug, label, order_index').order('order_index'),
     admin.from('profile_genres').select('genre_id').eq('profile_id', id),
+    admin.auth.admin.getUserById(id),
   ])
 
   if (!profile) notFound()
@@ -49,6 +50,7 @@ export default async function AdminEditProfilePage({ params }: Props) {
         isFounder={currentIsFounder}
         genres={(allGenres ?? []) as Genre[]}
         currentGenreIds={(profileGenres ?? []).map((g: { genre_id: string }) => g.genre_id)}
+        email={authUser?.user?.email ?? null}
       />
     </div>
   )

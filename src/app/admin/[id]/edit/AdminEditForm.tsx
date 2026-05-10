@@ -13,11 +13,13 @@ export function AdminEditForm({
   isFounder,
   genres,
   currentGenreIds,
+  email,
 }: {
   profile: Profile
   isFounder: boolean
   genres: Genre[]
   currentGenreIds: string[]
+  email: string | null
 }) {
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -106,6 +108,7 @@ export function AdminEditForm({
 
   return (
     <div className="space-y-10">
+
       {/* ── AVATAR ──────────────────────────────────── */}
       <AdminAvatarUpload
         profileId={profile.id}
@@ -114,7 +117,7 @@ export function AdminEditForm({
         role={profile.role}
       />
 
-      {/* ── FORM PRINCIPALE ─────────────────────────── */}
+      {/* ── PROFILO: nome, bio, città, instagram, tariffa ── */}
       <form
         action={(formData) => {
           setError(null)
@@ -123,7 +126,7 @@ export function AdminEditForm({
             if (result?.error) setError(result.error)
           })
         }}
-        className="space-y-6"
+        className="space-y-10"
       >
         {error && (
           <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
@@ -132,7 +135,7 @@ export function AdminEditForm({
         )}
 
         <section className="space-y-4">
-          <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Informazioni</h2>
+          <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Profilo</h2>
 
           <Input
             label="Nome completo"
@@ -164,8 +167,9 @@ export function AdminEditForm({
           />
         </section>
 
+        {/* ── ANAGRAFICA: anno carriera, XP, email ────── */}
         <section className="space-y-4">
-          <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Dati piattaforma</h2>
+          <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Anagrafica</h2>
 
           <Input
             label="Anno di inizio carriera"
@@ -185,6 +189,17 @@ export function AdminEditForm({
             defaultValue={profile.xp}
             hint="Modifica manuale degli XP. Il livello verrà ricalcolato automaticamente."
           />
+
+          {/* Email — sola lettura */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-neutral-300">
+              Email
+              <span className="ml-2 text-[10px] font-normal text-neutral-600 uppercase tracking-wide">sola lettura</span>
+            </label>
+            <div className="w-full rounded-lg border border-neutral-800 bg-neutral-950 px-3.5 py-2.5 text-sm text-neutral-500 select-all">
+              {email ?? '—'}
+            </div>
+          </div>
         </section>
 
         <div className="flex gap-3 pt-2">
@@ -193,6 +208,54 @@ export function AdminEditForm({
           </Button>
         </div>
       </form>
+
+      {/* ── BONUS XP — solo Founder ──────────────────── */}
+      {isFounder && (
+        <section className="space-y-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-5">
+          <div>
+            <h2 className="text-xs font-medium text-amber-400 uppercase tracking-wider">
+              ✦ Assegna bonus XP
+            </h2>
+            <p className="text-xs text-neutral-500 mt-1">
+              XP attuali: <span className="text-white font-medium">{currentXp}</span>
+            </p>
+          </div>
+
+          <div className="flex items-end gap-3">
+            <div className="flex-1 space-y-1.5">
+              <label className="text-sm font-medium text-neutral-300">Delta XP</label>
+              <input
+                type="number"
+                value={xpDelta}
+                onChange={(e) => { setXpDelta(e.target.value); setXpFeedback(null) }}
+                placeholder="es. +100 o -50"
+                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:border-amber-500/40 focus:ring-amber-500/10"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleAwardXp}
+              disabled={!parsedDelta || xpPending}
+              loading={xpPending}
+            >
+              Assegna
+            </Button>
+          </div>
+
+          {parsedDelta !== 0 && !xpFeedback && (
+            <p className="text-xs text-neutral-500">
+              Risultato: {currentXp} → <span className={parsedDelta > 0 ? 'text-emerald-400' : 'text-red-400'}>{previewXp} XP</span>
+            </p>
+          )}
+
+          {xpFeedback && (
+            <p className={['text-xs font-medium', xpFeedback.ok ? 'text-emerald-400' : 'text-red-400'].join(' ')}>
+              {xpFeedback.msg}
+            </p>
+          )}
+        </section>
+      )}
 
       {/* ── GENERI ──────────────────────────────────── */}
       {genres.length > 0 && (
@@ -290,53 +353,6 @@ export function AdminEditForm({
         </section>
       )}
 
-      {/* ── BONUS XP — solo Founder ──────────────────── */}
-      {isFounder && (
-        <section className="space-y-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-5">
-          <div>
-            <h2 className="text-xs font-medium text-amber-400 uppercase tracking-wider">
-              ✦ Assegna bonus XP
-            </h2>
-            <p className="text-xs text-neutral-500 mt-1">
-              XP attuali: <span className="text-white font-medium">{currentXp}</span>
-            </p>
-          </div>
-
-          <div className="flex items-end gap-3">
-            <div className="flex-1 space-y-1.5">
-              <label className="text-sm font-medium text-neutral-300">Delta XP</label>
-              <input
-                type="number"
-                value={xpDelta}
-                onChange={(e) => { setXpDelta(e.target.value); setXpFeedback(null) }}
-                placeholder="es. +100 o -50"
-                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:border-amber-500/40 focus:ring-amber-500/10"
-              />
-            </div>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleAwardXp}
-              disabled={!parsedDelta || xpPending}
-              loading={xpPending}
-            >
-              Assegna
-            </Button>
-          </div>
-
-          {parsedDelta !== 0 && !xpFeedback && (
-            <p className="text-xs text-neutral-500">
-              Risultato: {currentXp} → <span className={parsedDelta > 0 ? 'text-emerald-400' : 'text-red-400'}>{previewXp} XP</span>
-            </p>
-          )}
-
-          {xpFeedback && (
-            <p className={['text-xs font-medium', xpFeedback.ok ? 'text-emerald-400' : 'text-red-400'].join(' ')}>
-              {xpFeedback.msg}
-            </p>
-          )}
-        </section>
-      )}
     </div>
   )
 }

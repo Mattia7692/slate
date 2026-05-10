@@ -215,16 +215,13 @@ export async function bookSlot(slotId: string, tourId: string, creatorId: string
   const msgPart = message?.trim() ? ` · "${message.trim().slice(0, 80)}"` : ''
 
   // Notifica alla modella
-  const notifPayload = {
+  const { error: notifError } = await adminClient.from('notifications').insert({
     user_id: creatorId,
     type: 'project_updated' as const,
     title: 'Nuova prenotazione slot',
     body: `${myProfile?.full_name ?? 'Un fotografo'} ha prenotato lo slot del ${slotDate} alle ${startTime.slice(0, 5)}${msgPart}.`,
     data: { tour_id: tourId, slot_id: slotId },
-  }
-  console.log('[bookSlot] inserting notification', JSON.stringify(notifPayload))
-  const { data: notifData, error: notifError } = await adminClient.from('notifications').insert(notifPayload).select()
-  console.log('[bookSlot] notification result', JSON.stringify({ data: notifData, error: notifError }))
+  })
   if (notifError) return { error: `Slot prenotato, ma errore notifica: ${notifError.message}` }
 
   revalidatePath(`/bacheca/tours/${tourId}`)

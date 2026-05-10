@@ -236,6 +236,7 @@ export default async function TourDetailPage({ params }: Props) {
             tourStatus={tour.status}
             currentUserId={user.id}
             defaultRate={tour.hourly_rate}
+            tourGenres={tourGenres}
           />
         </div>
       </div>

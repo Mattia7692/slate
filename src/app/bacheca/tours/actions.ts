@@ -186,7 +186,7 @@ export async function createTour(payload: CreateTourPayload) {
   redirect(`/bacheca/tours/${tour.id}`)
 }
 
-export async function bookSlot(slotId: string, tourId: string, creatorId: string, slotDate: string, startTime: string) {
+export async function bookSlot(slotId: string, tourId: string, creatorId: string, slotDate: string, startTime: string, message?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
@@ -201,18 +201,25 @@ export async function bookSlot(slotId: string, tourId: string, creatorId: string
 
   const { error } = await adminClient
     .from('tour_slots')
-    .update({ status: 'booked', booked_by: user.id, booked_at: new Date().toISOString() })
+    .update({
+      status: 'booked',
+      booked_by: user.id,
+      booked_at: new Date().toISOString(),
+      booking_message: message?.trim() || null,
+    })
     .eq('id', slotId)
     .eq('status', 'free')
 
   if (error) return { error: error.message }
+
+  const msgPart = message?.trim() ? ` · "${message.trim().slice(0, 80)}"` : ''
 
   // Notifica alla modella
   await adminClient.from('notifications').insert({
     user_id: creatorId,
     type: 'project_update',
     title: 'Nuova prenotazione slot',
-    body: `${myProfile?.full_name ?? 'Un fotografo'} ha prenotato lo slot del ${slotDate} alle ${startTime}.`,
+    body: `${myProfile?.full_name ?? 'Un fotografo'} ha prenotato lo slot del ${slotDate} alle ${startTime.slice(0, 5)}${msgPart}.`,
     data: { tour_id: tourId, slot_id: slotId },
   })
 

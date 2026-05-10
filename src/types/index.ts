@@ -266,6 +266,7 @@ export interface TourSlot {
   status: SlotStatus
   booked_by: string | null
   booked_at: string | null
+  booking_message: string | null
   created_at: string
 }
 

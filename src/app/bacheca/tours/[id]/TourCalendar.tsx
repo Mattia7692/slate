@@ -5,7 +5,7 @@ import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { SlotModal } from './SlotModal'
 import { AddSlotModal } from './AddSlotModal'
-import type { TourSlotWithBooker, TourStatus, SlotStatus } from '@/types'
+import type { TourSlotWithBooker, TourStatus, SlotStatus, Genre } from '@/types'
 
 interface Props {
   slots: TourSlotWithBooker[]
@@ -15,6 +15,7 @@ interface Props {
   tourStatus: TourStatus
   currentUserId: string
   defaultRate: number
+  tourGenres: Genre[]
 }
 
 function groupByDate(slots: TourSlotWithBooker[]): Map<string, TourSlotWithBooker[]> {
@@ -59,7 +60,7 @@ const LEGEND_VISITOR: { status: SlotStatus | 'occupied'; label: string }[] = [
   { status: 'occupied', label: 'Occupato' },
 ]
 
-export function TourCalendar({ slots, isCreator, tourId, creatorId, tourStatus, currentUserId, defaultRate }: Props) {
+export function TourCalendar({ slots, isCreator, tourId, creatorId, tourStatus, currentUserId, defaultRate, tourGenres }: Props) {
   const [selectedSlot, setSelectedSlot] = useState<TourSlotWithBooker | null>(null)
   const [addSlotDate, setAddSlotDate] = useState<string | null>(null)
 
@@ -217,6 +218,7 @@ export function TourCalendar({ slots, isCreator, tourId, creatorId, tourStatus, 
           tourId={tourId}
           creatorId={creatorId}
           currentUserId={currentUserId}
+          tourGenres={tourGenres}
           onClose={() => setSelectedSlot(null)}
         />
       )}

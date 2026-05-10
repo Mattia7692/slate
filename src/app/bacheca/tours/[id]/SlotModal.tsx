@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { createClient } from '@/lib/supabase/client'
 import { bookSlot, confirmSlot, cancelSlot, updateSlot, reactivateSlot } from '../actions'
-import type { TourSlotWithBooker } from '@/types'
+import { genrePillClass } from '@/lib/genreColors'
+import type { TourSlotWithBooker, Genre } from '@/types'
 
 interface Props {
   slot: TourSlotWithBooker
@@ -13,10 +15,11 @@ interface Props {
   tourId: string
   creatorId: string
   currentUserId: string
+  tourGenres: Genre[]
   onClose: () => void
 }
 
-export function SlotModal({ slot, isCreator, tourId, creatorId, currentUserId, onClose }: Props) {
+export function SlotModal({ slot, isCreator, tourId, creatorId, currentUserId, tourGenres, onClose }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -27,8 +30,31 @@ export function SlotModal({ slot, isCreator, tourId, creatorId, currentUserId, o
   const [editDuration, setEditDuration] = useState(String(slot.duration_hours))
   const [editRate, setEditRate] = useState(String(slot.hourly_rate))
 
+  // Messaggio opzionale (solo photographer in fase di prenotazione)
+  const [message, setMessage] = useState('')
+
+  // Generi in comune
+  const [commonGenres, setCommonGenres] = useState<Genre[]>([])
+
+  useEffect(() => {
+    // Fetch solo per chi sta per prenotare (non creator, slot libero)
+    if (isCreator || slot.status !== 'free' || tourGenres.length === 0) return
+    const supabase = createClient()
+    supabase
+      .from('profile_genres')
+      .select('genre_id')
+      .eq('profile_id', currentUserId)
+      .then(({ data }) => {
+        if (!data) return
+        const myGenreIds = new Set(data.map((r: { genre_id: string }) => r.genre_id))
+        setCommonGenres(tourGenres.filter((g) => myGenreIds.has(g.id)))
+      })
+  }, [isCreator, slot.status, currentUserId, tourGenres])
+
   const parsed = parseISO(slot.slot_date)
   const dateLabel = format(parsed, 'EEEE d MMMM', { locale: it })
+
+  const fmt = (t: string) => t.slice(0, 5)
 
   async function run(fn: () => Promise<{ error: string | null } | void>) {
     setLoading(true)
@@ -50,7 +76,7 @@ export function SlotModal({ slot, isCreator, tourId, creatorId, currentUserId, o
 
   async function handleBook() {
     await run(() =>
-      bookSlot(slot.id, tourId, creatorId, slot.slot_date, slot.start_time)
+      bookSlot(slot.id, tourId, creatorId, slot.slot_date, slot.start_time, message || undefined)
     )
   }
 
@@ -81,13 +107,13 @@ export function SlotModal({ slot, isCreator, tourId, creatorId, currentUserId, o
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="w-full sm:max-w-sm bg-neutral-950 border border-neutral-800 rounded-t-2xl sm:rounded-2xl p-5 space-y-4 shadow-xl">
+      <div className="w-full sm:max-w-sm bg-neutral-950 border border-neutral-800 rounded-t-2xl sm:rounded-2xl p-5 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
 
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-semibold capitalize">{dateLabel}</p>
-            <p className="text-2xl font-bold tabular-nums mt-0.5">{slot.start_time} – {slot.end_time}</p>
+            <p className="text-2xl font-bold tabular-nums mt-0.5">{fmt(slot.start_time)} – {fmt(slot.end_time)}</p>
           </div>
           <button
             onClick={onClose}
@@ -116,6 +142,13 @@ export function SlotModal({ slot, isCreator, tourId, creatorId, currentUserId, o
               <div className="flex justify-between">
                 <span className="text-neutral-500">Prenotato da</span>
                 <span className="font-medium">{slot.booker.full_name}</span>
+              </div>
+            )}
+            {/* Messaggio del prenotante (visibile al creator) */}
+            {isCreator && slot.booking_message && (
+              <div className="pt-2 border-t border-neutral-800">
+                <p className="text-[11px] text-neutral-500 mb-1">Messaggio</p>
+                <p className="text-sm text-neutral-300 leading-relaxed">{slot.booking_message}</p>
               </div>
             )}
           </div>
@@ -164,6 +197,42 @@ export function SlotModal({ slot, isCreator, tourId, creatorId, currentUserId, o
             <p className="text-xs text-neutral-600">
               Totale: €{(parseFloat(editDuration || '0') * parseFloat(editRate || '0')).toFixed(0)}
             </p>
+          </div>
+        )}
+
+        {/* Generi in comune (solo photographer, slot libero) */}
+        {!isCreator && slot.status === 'free' && commonGenres.length > 0 && (
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-3 space-y-2">
+            <p className="text-[11px] text-neutral-500 uppercase tracking-wide font-medium">
+              Generi in comune
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {commonGenres.map((g) => (
+                <span key={g.id} className={genrePillClass(g.order_index)}>
+                  {g.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Messaggio opzionale (solo photographer, slot libero) */}
+        {!isCreator && slot.status === 'free' && (
+          <div className="space-y-1.5">
+            <label className="text-xs text-neutral-500">
+              Messaggio <span className="text-neutral-700">(opzionale)</span>
+            </label>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Descrivi brevemente che tipo di foto vorresti realizzare…"
+              rows={3}
+              maxLength={400}
+              className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-neutral-500/20 resize-none"
+            />
+            {message.length > 0 && (
+              <p className="text-[11px] text-neutral-700 text-right">{message.length}/400</p>
+            )}
           </div>
         )}
 

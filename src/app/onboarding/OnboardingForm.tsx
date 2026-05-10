@@ -11,8 +11,22 @@ import { computeSeniorityBonus, yearsFromStartYear } from '@/lib/xp'
 import type { UserRole, Genre } from '@/types'
 
 // ============================================================
-// Tipi locali
+// Tipi e costanti
 // ============================================================
+
+type ScreenId = 'role_genres' | 'measurements' | 'profile' | 'photos'
+
+const SCREEN_LABELS: Record<ScreenId, string> = {
+  role_genres:  'Ruolo & Generi',
+  measurements: 'Misure',
+  profile:      'Profilo',
+  photos:       'Foto',
+}
+
+function getScreens(role: UserRole | null): ScreenId[] {
+  if (role === 'model') return ['role_genres', 'measurements', 'profile', 'photos']
+  return ['role_genres', 'profile', 'photos']
+}
 
 interface FormState {
   role: UserRole | null
@@ -23,7 +37,19 @@ interface FormState {
   career_start_year: number | null
 }
 
-const INITIAL_STATE: FormState = {
+interface MeasurementsState {
+  height: string
+  bust: string
+  waist: string
+  hips: string
+  clothingSize: string
+  shoeSize: string
+  hairColor: string
+  hairTexture: string
+  eyeColor: string
+}
+
+const INITIAL_FORM: FormState = {
   role: null,
   full_name: '',
   bio: '',
@@ -32,7 +58,18 @@ const INITIAL_STATE: FormState = {
   career_start_year: null,
 }
 
-const STEPS = ['Ruolo', 'Generi', 'Profilo', 'Foto'] as const
+const INITIAL_MEASUREMENTS: MeasurementsState = {
+  height: '',
+  bust: '',
+  waist: '',
+  hips: '',
+  clothingSize: '',
+  shoeSize: '',
+  hairColor: '',
+  hairTexture: '',
+  eyeColor: '',
+}
+
 const PORTFOLIO_MIN = 3
 const PORTFOLIO_MAX = 10
 const STILL_LIFE_LABEL = 'Still life / Product'
@@ -42,8 +79,9 @@ const STILL_LIFE_LABEL = 'Still life / Product'
 // ============================================================
 
 export function OnboardingForm({ preview = false, genres }: { preview?: boolean; genres: Genre[] }) {
-  const [step, setStep] = useState(0)
-  const [form, setForm] = useState<FormState>(INITIAL_STATE)
+  const [currentScreen, setCurrentScreen] = useState<ScreenId>('role_genres')
+  const [form, setForm] = useState<FormState>(INITIAL_FORM)
+  const [measurements, setMeasurements] = useState<MeasurementsState>(INITIAL_MEASUREMENTS)
   const [selectedGenreIds, setSelectedGenreIds] = useState<string[]>([])
   const [hourlyRate, setHourlyRate] = useState<string>('')
 
@@ -53,7 +91,7 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
   const [oldestPhotoDate, setOldestPhotoDate] = useState<string | null>(null)
   const [oldestPhotoExif, setOldestPhotoExif] = useState<Record<string, unknown> | null>(null)
 
-  // Foto profilo (avatar)
+  // Foto profilo
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
 
@@ -69,11 +107,21 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
   const submitBtnRef = useRef<HTMLButtonElement>(null)
   const supabase = createClient()
 
+  // ---- Helpers ----
+
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
-  // Generi visibili in base al ruolo
+  function setM<K extends keyof MeasurementsState>(key: K, value: string) {
+    setMeasurements((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function handleRoleSelect(role: UserRole) {
+    set('role', role)
+    setSelectedGenreIds([])
+  }
+
   const visibleGenres = form.role === 'model'
     ? genres.filter((g) => g.label !== STILL_LIFE_LABEL)
     : genres
@@ -84,7 +132,31 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
     )
   }
 
-  // --- Upload helpers ---
+  // ---- Navigation ----
+
+  const screens = getScreens(form.role)
+  const currentIndex = screens.indexOf(currentScreen)
+  const totalSteps = screens.length
+  const isLastScreen = currentScreen === 'photos'
+
+  function goNext() {
+    const next = screens[currentIndex + 1]
+    if (next) setCurrentScreen(next)
+  }
+
+  function goBack() {
+    const prev = screens[currentIndex - 1]
+    if (prev) setCurrentScreen(prev)
+  }
+
+  function canProceed(): boolean {
+    if (currentScreen === 'role_genres') return form.role !== null && selectedGenreIds.length >= 1
+    if (currentScreen === 'measurements') return measurements.height.trim() !== ''
+    if (currentScreen === 'profile') return form.full_name.trim().length >= 2
+    return oldestPhotoFile !== null && avatarFile !== null && portfolioFiles.length >= PORTFOLIO_MIN
+  }
+
+  // ---- Upload helpers ----
 
   async function handleOldestPhoto(file: File | null) {
     if (!file) return
@@ -130,15 +202,6 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
     return data.publicUrl
   }
 
-  // --- Navigazione step ---
-
-  function canProceed(): boolean {
-    if (step === 0) return form.role !== null
-    if (step === 1) return selectedGenreIds.length >= 1
-    if (step === 2) return form.full_name.trim().length >= 2
-    return oldestPhotoFile !== null && avatarFile !== null && portfolioFiles.length >= PORTFOLIO_MIN
-  }
-
   function handleSubmitClick() {
     if (portfolioFiles.length < PORTFOLIO_MIN) {
       setSubmitBlocked(true)
@@ -148,7 +211,7 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
     handleSubmit()
   }
 
-  // --- Submit finale ---
+  // ---- Submit ----
 
   async function handleSubmit() {
     if (preview) {
@@ -166,21 +229,18 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
       const uid = user.id
       const ts = Date.now()
 
-      // Upload foto più vecchia
       let oldestPhotoUrl: string | null = null
       if (oldestPhotoFile) {
         const ext = oldestPhotoFile.name.split('.').pop()
         oldestPhotoUrl = await uploadFile(oldestPhotoFile, 'oldest-photos', `${uid}/${ts}.${ext}`)
       }
 
-      // Upload foto profilo (avatar)
       let avatarUrl: string | null = null
       if (avatarFile) {
         const ext = avatarFile.name.split('.').pop()
         avatarUrl = await uploadFile(avatarFile, 'avatars', `${uid}/${ts}-avatar.${ext}`)
       }
 
-      // Upload portfolio
       const portfolioUrls: string[] = []
       for (let i = 0; i < portfolioFiles.length; i++) {
         const file = portfolioFiles[i]
@@ -189,7 +249,6 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
         portfolioUrls.push(url)
       }
 
-      // Filtra genre_ids validi per il ruolo corrente (sicurezza lato client)
       const validGenreIds = new Set(visibleGenres.map((g) => g.id))
       const genreIds = selectedGenreIds.filter((id) => validGenreIds.has(id))
 
@@ -207,6 +266,16 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
         portfolio_urls: portfolioUrls,
         genre_ids: genreIds,
         hourly_rate: hourlyRate ? parseInt(hourlyRate) : null,
+        // Misure (solo modelle)
+        height_cm: form.role === 'model' && measurements.height ? parseInt(measurements.height) : null,
+        bust_cm: form.role === 'model' && measurements.bust ? parseInt(measurements.bust) : null,
+        waist_cm: form.role === 'model' && measurements.waist ? parseInt(measurements.waist) : null,
+        hips_cm: form.role === 'model' && measurements.hips ? parseInt(measurements.hips) : null,
+        clothing_size: form.role === 'model' && measurements.clothingSize ? measurements.clothingSize : null,
+        shoe_size: form.role === 'model' && measurements.shoeSize ? measurements.shoeSize : null,
+        hair_color: form.role === 'model' && measurements.hairColor ? measurements.hairColor : null,
+        hair_texture: form.role === 'model' && measurements.hairTexture ? measurements.hairTexture : null,
+        eye_color: form.role === 'model' && measurements.eyeColor ? measurements.eyeColor : null,
       })
 
       if (result?.error) {
@@ -220,7 +289,7 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
   }
 
   // ============================================================
-  // Render
+  // Preview done
   // ============================================================
 
   if (preview && previewDone) {
@@ -232,8 +301,9 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
         <button
           onClick={() => {
             setPreviewDone(false)
-            setStep(0)
-            setForm(INITIAL_STATE)
+            setCurrentScreen('role_genres')
+            setForm(INITIAL_FORM)
+            setMeasurements(INITIAL_MEASUREMENTS)
             setSelectedGenreIds([])
             setOldestPhotoFile(null)
             setOldestPhotoPreview(null)
@@ -253,6 +323,10 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
   const portfolioCount = portfolioFiles.length
   const portfolioReady = portfolioCount >= PORTFOLIO_MIN
 
+  // ============================================================
+  // Render
+  // ============================================================
+
   return (
     <div className="space-y-8">
       {/* Banner anteprima */}
@@ -263,21 +337,22 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
       )}
 
       {/* Progress bar */}
-      <div className="flex items-center gap-2">
-        {STEPS.map((label, i) => (
-          <div key={label} className="flex items-center gap-2 flex-1">
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5">
+          {screens.map((s, i) => (
             <div
+              key={s}
               className={[
                 'h-1 flex-1 rounded-full transition-colors',
-                i <= step ? 'bg-white' : 'bg-neutral-800',
+                i <= currentIndex ? 'bg-white' : 'bg-neutral-800',
               ].join(' ')}
             />
-          </div>
-        ))}
+          ))}
+        </div>
+        <p className="text-xs text-neutral-500 text-right">
+          Step {currentIndex + 1} di {totalSteps} — {SCREEN_LABELS[currentScreen]}
+        </p>
       </div>
-      <p className="text-xs text-neutral-500 text-right">
-        Step {step + 1} di {STEPS.length} — {STEPS[step]}
-      </p>
 
       {/* Errore globale */}
       {error && (
@@ -286,79 +361,214 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
         </div>
       )}
 
-      {/* ---- STEP 0: Ruolo ---- */}
-      {step === 0 && (
-        <div className="space-y-4">
-          <h2 className="text-lg font-medium">Qual è il tuo ruolo?</h2>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            {(['photographer', 'model'] as const).map((role) => (
-              <button
-                key={role}
-                onClick={() => set('role', role)}
-                className={[
-                  'flex flex-col items-center gap-3 rounded-xl border p-5 sm:p-6 transition-colors cursor-pointer',
-                  form.role === role
-                    ? 'border-white bg-white/5'
-                    : 'border-neutral-800 hover:border-neutral-600',
-                ].join(' ')}
-              >
-                <span className={[
-                  'text-3xl font-bold',
-                  role === 'photographer' ? 'text-sky-400' : 'text-rose-400',
-                ].join(' ')}>
-                  {role === 'photographer' ? 'F' : 'M'}
-                </span>
-                <span className={[
-                  'text-sm font-semibold',
-                  role === 'photographer' ? 'text-sky-300' : 'text-rose-300',
-                ].join(' ')}>
-                  {role === 'photographer' ? 'Fotografo' : 'Modell*'}
-                </span>
-              </button>
-            ))}
+      {/* ---- SCREEN: Ruolo & Generi ---- */}
+      {currentScreen === 'role_genres' && (
+        <div className="space-y-6">
+          {/* Sezione 1: Ruolo */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-medium">Qual è il tuo ruolo?</h2>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              {(['photographer', 'model'] as const).map((role) => (
+                <button
+                  key={role}
+                  onClick={() => handleRoleSelect(role)}
+                  className={[
+                    'flex flex-col items-center gap-3 rounded-xl border p-5 sm:p-6 transition-colors cursor-pointer',
+                    form.role === role
+                      ? 'border-white bg-white/5'
+                      : 'border-neutral-800 hover:border-neutral-600',
+                  ].join(' ')}
+                >
+                  <span className={[
+                    'text-3xl font-bold',
+                    role === 'photographer' ? 'text-sky-400' : 'text-rose-400',
+                  ].join(' ')}>
+                    {role === 'photographer' ? 'F' : 'M'}
+                  </span>
+                  <span className={[
+                    'text-sm font-semibold',
+                    role === 'photographer' ? 'text-sky-300' : 'text-rose-300',
+                  ].join(' ')}>
+                    {role === 'photographer' ? 'Fotografo' : 'Modell*'}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
+
+          {/* Sezione 2: Generi (visibile solo dopo aver scelto il ruolo) */}
+          {form.role !== null && (
+            <div className="space-y-4 border-t border-neutral-800 pt-6">
+              <div>
+                <h2 className="text-lg font-medium">I tuoi generi</h2>
+                <p className="text-sm text-neutral-400 mt-1">
+                  Seleziona i generi in cui lavori. Puoi sceglierne più di uno.
+                </p>
+              </div>
+              <GenrePills
+                genres={visibleGenres}
+                selected={selectedGenreIds}
+                onToggle={toggleGenre}
+              />
+              {selectedGenreIds.length === 0 && (
+                <p className="text-xs text-neutral-600">Seleziona almeno un genere per continuare.</p>
+              )}
+
+              {/* Cachet orario */}
+              <div className="border-t border-neutral-800 pt-5 space-y-2">
+                <label className="text-sm font-medium text-neutral-300">
+                  La tua tariffa oraria (€/h)
+                </label>
+                <p className="text-xs text-neutral-600">Facoltativa — comparirà sul tuo profilo pubblico.</p>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  value={hourlyRate}
+                  onChange={(e) => setHourlyRate(e.target.value)}
+                  placeholder="es. 150"
+                  className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20"
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* ---- STEP 1: Generi ---- */}
-      {step === 1 && (
-        <div className="space-y-6">
+      {/* ---- SCREEN: Misure (solo modelle) ---- */}
+      {currentScreen === 'measurements' && (
+        <div className="space-y-5">
           <div>
-            <h2 className="text-lg font-medium">I tuoi generi</h2>
-            <p className="text-sm text-neutral-400 mt-1">
-              Seleziona i generi in cui lavori. Puoi sceglierne più di uno.
+            <h2 className="text-lg font-medium">Le tue misure</h2>
+            <p className="text-sm text-neutral-400 mt-1 leading-relaxed">
+              Questi dati aiutano i fotografi a capire se sei adatta al loro progetto. Potrai aggiornarli in qualsiasi momento.
             </p>
           </div>
-          <GenrePills
-            genres={visibleGenres}
-            selected={selectedGenreIds}
-            onToggle={toggleGenre}
-          />
-          {selectedGenreIds.length === 0 && (
-            <p className="text-xs text-neutral-600">Seleziona almeno un genere per continuare.</p>
-          )}
 
-          {/* Cachet orario */}
-          <div className="border-t border-neutral-800 pt-5 space-y-2">
+          {/* Altezza */}
+          <div className="space-y-1.5">
             <label className="text-sm font-medium text-neutral-300">
-              La tua tariffa oraria (€/h)
+              Altezza (cm) <span className="text-rose-400">*</span>
             </label>
-            <p className="text-xs text-neutral-600">Facoltativa — comparirà sul tuo profilo pubblico.</p>
             <input
               type="number"
               inputMode="numeric"
-              min={1}
-              value={hourlyRate}
-              onChange={(e) => setHourlyRate(e.target.value)}
-              placeholder="es. 150"
+              min={100}
+              max={220}
+              value={measurements.height}
+              onChange={(e) => setM('height', e.target.value)}
+              placeholder="160"
               className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20"
             />
           </div>
+
+          {/* Misure seno/vita/fianchi */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-neutral-300">
+              Misure (seno / vita / fianchi in cm)
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              <input
+                type="number"
+                inputMode="numeric"
+                min={50}
+                max={150}
+                value={measurements.bust}
+                onChange={(e) => setM('bust', e.target.value)}
+                placeholder="90"
+                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20"
+              />
+              <input
+                type="number"
+                inputMode="numeric"
+                min={50}
+                max={150}
+                value={measurements.waist}
+                onChange={(e) => setM('waist', e.target.value)}
+                placeholder="60"
+                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20"
+              />
+              <input
+                type="number"
+                inputMode="numeric"
+                min={50}
+                max={150}
+                value={measurements.hips}
+                onChange={(e) => setM('hips', e.target.value)}
+                placeholder="90"
+                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20"
+              />
+            </div>
+          </div>
+
+          {/* Taglia abiti */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-neutral-300">Taglia abiti</label>
+            <input
+              type="text"
+              value={measurements.clothingSize}
+              onChange={(e) => setM('clothingSize', e.target.value)}
+              placeholder="36, 38, 40…"
+              className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20"
+            />
+          </div>
+
+          {/* Numero scarpe */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-neutral-300">Numero di scarpe</label>
+            <input
+              type="text"
+              value={measurements.shoeSize}
+              onChange={(e) => setM('shoeSize', e.target.value)}
+              placeholder="38, 39, 40…"
+              className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20"
+            />
+          </div>
+
+          {/* Capelli */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-neutral-300">Colore capelli</label>
+              <input
+                type="text"
+                value={measurements.hairColor}
+                onChange={(e) => setM('hairColor', e.target.value)}
+                placeholder="castani, biondi, neri, rossi…"
+                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-neutral-300">Struttura capelli</label>
+              <input
+                type="text"
+                value={measurements.hairTexture}
+                onChange={(e) => setM('hairTexture', e.target.value)}
+                placeholder="lisci, mossi, ricci…"
+                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20"
+              />
+            </div>
+          </div>
+
+          {/* Occhi */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-neutral-300">Colore occhi</label>
+            <input
+              type="text"
+              value={measurements.eyeColor}
+              onChange={(e) => setM('eyeColor', e.target.value)}
+              placeholder="marroni, verdi, azzurri…"
+              className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20"
+            />
+          </div>
+
+          <p className="text-xs text-neutral-600">
+            I campi contrassegnati con <span className="text-rose-400">*</span> sono obbligatori.
+          </p>
         </div>
       )}
 
-      {/* ---- STEP 2: Profilo ---- */}
-      {step === 2 && (
+      {/* ---- SCREEN: Profilo / Anagrafica ---- */}
+      {currentScreen === 'profile' && (
         <div className="space-y-4">
           <h2 className="text-lg font-medium">Il tuo profilo</h2>
 
@@ -415,7 +625,7 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
               className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20"
             />
             {form.career_start_year && form.career_start_year >= 1950 && form.career_start_year < new Date().getFullYear() && (() => {
-              const years = yearsFromStartYear(form.career_start_year)
+              const years = yearsFromStartYear(form.career_start_year!)
               return (
                 <p className="text-xs text-neutral-500">
                   {years} {years === 1 ? 'anno' : 'anni'} nel settore ·{' '}
@@ -429,11 +639,11 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
         </div>
       )}
 
-      {/* ---- STEP 3: Foto ---- */}
-      {step === 3 && (
+      {/* ---- SCREEN: Foto ---- */}
+      {currentScreen === 'photos' && (
         <div className="space-y-8">
 
-          {/* SEZIONE 1 — Foto più vecchia */}
+          {/* Foto più vecchia */}
           <div className="space-y-3">
             <div>
               <h3 className="text-base font-medium">La tua foto più vecchia</h3>
@@ -448,11 +658,7 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
             {oldestPhotoPreview ? (
               <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-neutral-700">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={oldestPhotoPreview}
-                  alt="Foto anzianità"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
+                <img src={oldestPhotoPreview} alt="Foto anzianità" className="absolute inset-0 w-full h-full object-cover" />
                 <button
                   onClick={() => { setOldestPhotoFile(null); setOldestPhotoPreview(null) }}
                   className="absolute top-2 right-2 bg-black/60 rounded-full w-8 h-8 flex items-center justify-center text-sm hover:bg-black/80 cursor-pointer transition-colors"
@@ -465,12 +671,7 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
                 <span className="text-2xl text-neutral-600 mb-2">📎</span>
                 <span className="text-sm text-neutral-500">Tocca per caricare</span>
                 <span className="text-xs text-neutral-600 mt-1">JPG, PNG, WebP</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => handleOldestPhoto(e.target.files?.[0] ?? null)}
-                />
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleOldestPhoto(e.target.files?.[0] ?? null)} />
               </label>
             )}
 
@@ -481,23 +682,17 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
 
           <div className="border-t border-neutral-800" />
 
-          {/* SEZIONE 2 — Foto profilo */}
+          {/* Foto profilo */}
           <div className="space-y-3">
             <div>
               <h3 className="text-base font-medium">Foto profilo</h3>
-              <p className="text-sm text-neutral-500 mt-1">
-                La foto con cui gli altri ti riconosceranno su Slate.
-              </p>
+              <p className="text-sm text-neutral-500 mt-1">La foto con cui gli altri ti riconosceranno su Slate.</p>
             </div>
 
             {avatarPreview ? (
               <div className="relative w-36 h-36 rounded-2xl overflow-hidden border border-neutral-700">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={avatarPreview}
-                  alt="Foto profilo"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
+                <img src={avatarPreview} alt="Foto profilo" className="absolute inset-0 w-full h-full object-cover" />
                 <button
                   onClick={() => { setAvatarFile(null); setAvatarPreview(null) }}
                   className="absolute top-2 right-2 bg-black/60 rounded-full w-8 h-8 flex items-center justify-center text-sm hover:bg-black/80 cursor-pointer transition-colors"
@@ -509,19 +704,14 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
               <label className="flex flex-col items-center justify-center w-36 h-36 rounded-2xl border border-dashed border-neutral-700 active:border-neutral-500 hover:border-neutral-500 cursor-pointer transition-colors">
                 <span className="text-3xl text-neutral-600">👤</span>
                 <span className="text-xs text-neutral-600 mt-2">Tocca per caricare</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => handleAvatarPhoto(e.target.files?.[0] ?? null)}
-                />
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleAvatarPhoto(e.target.files?.[0] ?? null)} />
               </label>
             )}
           </div>
 
           <div className="border-t border-neutral-800" />
 
-          {/* SEZIONE 3 — Portfolio / Book */}
+          {/* Portfolio */}
           <div className="space-y-3">
             <div>
               <h3 className="text-base font-medium">Portfolio / Book</h3>
@@ -532,14 +722,8 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
             </div>
 
             <div className="flex items-center justify-between">
-              <span
-                className={[
-                  'text-sm font-medium transition-colors',
-                  portfolioReady ? 'text-emerald-400' : 'text-neutral-500',
-                ].join(' ')}
-              >
-                {portfolioCount}/{PORTFOLIO_MAX} foto
-                {portfolioReady && ' ✓'}
+              <span className={['text-sm font-medium transition-colors', portfolioReady ? 'text-emerald-400' : 'text-neutral-500'].join(' ')}>
+                {portfolioCount}/{PORTFOLIO_MAX} foto{portfolioReady && ' ✓'}
               </span>
               {!portfolioReady && (
                 <span className="text-xs text-neutral-600">
@@ -565,21 +749,13 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
               {portfolioFiles.length < PORTFOLIO_MAX && (
                 <label className="aspect-square rounded-lg border border-dashed border-neutral-700 active:border-neutral-500 hover:border-neutral-500 cursor-pointer transition-colors flex items-center justify-center">
                   <span className="text-3xl text-neutral-600">+</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => handlePortfolioFiles(e.target.files)}
-                  />
+                  <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handlePortfolioFiles(e.target.files)} />
                 </label>
               )}
             </div>
 
             {submitBlocked && (
-              <p className="text-xs text-amber-400 text-center">
-                Carica almeno 3 immagini per continuare
-              </p>
+              <p className="text-xs text-amber-400 text-center">Carica almeno 3 immagini per continuare</p>
             )}
           </div>
         </div>
@@ -587,23 +763,14 @@ export function OnboardingForm({ preview = false, genres }: { preview?: boolean;
 
       {/* Navigazione */}
       <div className="flex gap-3 pt-2">
-        {step > 0 && (
-          <Button
-            variant="secondary"
-            onClick={() => setStep((s) => s - 1)}
-            disabled={loading}
-            className="flex-1"
-          >
+        {currentIndex > 0 && (
+          <Button variant="secondary" onClick={goBack} disabled={loading} className="flex-1">
             Indietro
           </Button>
         )}
 
-        {step < STEPS.length - 1 ? (
-          <Button
-            onClick={() => setStep((s) => s + 1)}
-            disabled={!canProceed()}
-            className="flex-1"
-          >
+        {!isLastScreen ? (
+          <Button onClick={goNext} disabled={!canProceed()} className="flex-1">
             Avanti
           </Button>
         ) : (

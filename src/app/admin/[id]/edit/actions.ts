@@ -113,6 +113,35 @@ export async function adminUpdateProfileGenres(profileId: string, genreIds: stri
   return { error: null }
 }
 
+export async function adminUpdateMeasurements(
+  profileId: string,
+  data: {
+    height_cm: number | null
+    bust_cm: number | null
+    waist_cm: number | null
+    hips_cm: number | null
+    clothing_size: string | null
+    shoe_size: string | null
+    hair_color: string | null
+    hair_texture: string | null
+    eye_color: string | null
+  }
+) {
+  await requireAdmin()
+  const admin = createAdminClient()
+
+  const { error } = await admin
+    .from('profiles')
+    .update(data)
+    .eq('id', profileId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/admin/${profileId}`)
+  revalidatePath(`/admin/${profileId}/edit`)
+  return { error: null }
+}
+
 export async function awardFounderXp(profileId: string, delta: number) {
   await requireAdmin()
 

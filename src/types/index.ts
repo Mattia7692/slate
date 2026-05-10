@@ -55,6 +55,16 @@ export interface Profile {
   status: ProfileStatus
   is_admin: boolean
   created_at: string
+  // Misure fisiche (solo modelle)
+  height_cm: number | null
+  bust_cm: number | null
+  waist_cm: number | null
+  hips_cm: number | null
+  clothing_size: string | null
+  shoe_size: string | null
+  hair_color: string | null
+  hair_texture: string | null
+  eye_color: string | null
 }
 
 export interface PortfolioItem {

@@ -180,6 +180,71 @@ export function ProfileEditForm({ profile, portfolioItems: initialItems, oldestP
         </div>
       </section>
 
+      {/* Misure (solo modelle) */}
+      {profile.role === 'model' && (
+        <section className="space-y-4">
+          <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Misure</h2>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-neutral-300">Altezza (cm)</label>
+            <input
+              type="number"
+              name="height_cm"
+              inputMode="numeric"
+              min={100}
+              max={220}
+              defaultValue={profile.height_cm ?? ''}
+              placeholder="160"
+              className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-neutral-300">Misure (seno / vita / fianchi in cm)</label>
+            <div className="grid grid-cols-3 gap-2">
+              <input type="number" name="bust_cm" inputMode="numeric" min={50} max={150} defaultValue={profile.bust_cm ?? ''} placeholder="90"
+                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20" />
+              <input type="number" name="waist_cm" inputMode="numeric" min={50} max={150} defaultValue={profile.waist_cm ?? ''} placeholder="60"
+                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20" />
+              <input type="number" name="hips_cm" inputMode="numeric" min={50} max={150} defaultValue={profile.hips_cm ?? ''} placeholder="90"
+                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-neutral-300">Taglia abiti</label>
+              <input type="text" name="clothing_size" defaultValue={profile.clothing_size ?? ''} placeholder="36, 38, 40…"
+                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-neutral-300">Numero di scarpe</label>
+              <input type="text" name="shoe_size" defaultValue={profile.shoe_size ?? ''} placeholder="38, 39, 40…"
+                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-neutral-300">Colore capelli</label>
+              <input type="text" name="hair_color" defaultValue={profile.hair_color ?? ''} placeholder="castani, biondi, neri, rossi…"
+                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-neutral-300">Struttura capelli</label>
+              <input type="text" name="hair_texture" defaultValue={profile.hair_texture ?? ''} placeholder="lisci, mossi, ricci…"
+                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20" />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-neutral-300">Colore occhi</label>
+            <input type="text" name="eye_color" defaultValue={profile.eye_color ?? ''} placeholder="marroni, verdi, azzurri…"
+              className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3.5 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:border-neutral-500 focus:ring-neutral-500/20" />
+          </div>
+        </section>
+      )}
+
       {/* Prima foto professionale */}
       <OldestPhotoSection
         profileId={profile.id}

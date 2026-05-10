@@ -20,6 +20,16 @@ interface CreateProfilePayload {
   portfolio_urls: string[]
   genre_ids: string[]
   hourly_rate: number | null
+  // Misure (solo modelle)
+  height_cm: number | null
+  bust_cm: number | null
+  waist_cm: number | null
+  hips_cm: number | null
+  clothing_size: string | null
+  shoe_size: string | null
+  hair_color: string | null
+  hair_texture: string | null
+  eye_color: string | null
 }
 
 export async function createProfile(payload: CreateProfilePayload) {
@@ -42,7 +52,6 @@ export async function createProfile(payload: CreateProfilePayload) {
     : 0
   const seniorityBonus = computeSeniorityBonus(yearsInIndustry)
 
-  // Crea il profilo
   const { error: profileError } = await supabase
     .from('profiles')
     .insert({
@@ -61,6 +70,16 @@ export async function createProfile(payload: CreateProfilePayload) {
       hourly_rate: payload.hourly_rate,
       xp: seniorityBonus,
       status: 'pending',
+      // Misure (null per i fotografi)
+      height_cm: payload.height_cm,
+      bust_cm: payload.bust_cm,
+      waist_cm: payload.waist_cm,
+      hips_cm: payload.hips_cm,
+      clothing_size: payload.clothing_size,
+      shoe_size: payload.shoe_size,
+      hair_color: payload.hair_color,
+      hair_texture: payload.hair_texture,
+      eye_color: payload.eye_color,
     })
 
   if (profileError) {
@@ -69,7 +88,6 @@ export async function createProfile(payload: CreateProfilePayload) {
 
   const adminClient = createAdminClient()
 
-  // Inserisci le foto del portfolio
   if (payload.portfolio_urls.length > 0) {
     const portfolioItems = payload.portfolio_urls.map((url, index) => ({
       profile_id: user.id,
@@ -79,24 +97,21 @@ export async function createProfile(payload: CreateProfilePayload) {
     await supabase.from('portfolio_items').insert(portfolioItems)
   }
 
-  // Salva generi fotografici
   if (payload.genre_ids.length > 0) {
     await adminClient.from('profile_genres').insert(
       payload.genre_ids.map((genre_id) => ({ profile_id: user.id, genre_id }))
     )
   }
 
-  // Marca il codice invito come usato (ora che il profilo esiste come FK target)
   const inviteCode = user.user_metadata?.invite_code as string | undefined
   if (inviteCode) {
     await adminClient
       .from('invite_codes')
       .update({ used_by: user.id, used_at: new Date().toISOString() })
       .eq('code', inviteCode)
-      .is('used_by', null) // solo se non già marcato
+      .is('used_by', null)
   }
 
-  // Logga il bonus anzianità se > 0
   if (seniorityBonus > 0) {
     await supabase.from('xp_transactions').insert({
       profile_id: user.id,

@@ -166,6 +166,55 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           </section>
         )}
 
+        {/* Misure (solo modelle) */}
+        {profile.role === 'model' && profile.height_cm && (
+          <section className="space-y-3">
+            <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Misure</h2>
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900/50 p-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-sm">
+                <div className="flex justify-between gap-2">
+                  <span className="text-neutral-500">Altezza</span>
+                  <span className="font-medium">{profile.height_cm} cm</span>
+                </div>
+                {(profile.bust_cm || profile.waist_cm || profile.hips_cm) && (
+                  <div className="flex justify-between gap-2">
+                    <span className="text-neutral-500">Misure</span>
+                    <span className="font-medium tabular-nums">
+                      {profile.bust_cm ?? '—'}/{profile.waist_cm ?? '—'}/{profile.hips_cm ?? '—'}
+                    </span>
+                  </div>
+                )}
+                {profile.clothing_size && (
+                  <div className="flex justify-between gap-2">
+                    <span className="text-neutral-500">Taglia</span>
+                    <span className="font-medium">{profile.clothing_size}</span>
+                  </div>
+                )}
+                {profile.shoe_size && (
+                  <div className="flex justify-between gap-2">
+                    <span className="text-neutral-500">Scarpe</span>
+                    <span className="font-medium">{profile.shoe_size}</span>
+                  </div>
+                )}
+                {profile.hair_color && (
+                  <div className="flex justify-between gap-2">
+                    <span className="text-neutral-500">Capelli</span>
+                    <span className="font-medium capitalize">
+                      {[profile.hair_color, profile.hair_texture].filter(Boolean).join(', ')}
+                    </span>
+                  </div>
+                )}
+                {profile.eye_color && (
+                  <div className="flex justify-between gap-2">
+                    <span className="text-neutral-500">Occhi</span>
+                    <span className="font-medium capitalize">{profile.eye_color}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* CTA */}
         {!isOwnProfile && profile.status === 'approved' && myProfile && myProfile.role !== profile.role && (
           <div className="flex items-center gap-3 flex-wrap">

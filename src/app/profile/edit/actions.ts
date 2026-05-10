@@ -25,9 +25,33 @@ export async function updateProfile(formData: FormData) {
   const hourlyRateRaw = formData.get('hourly_rate') as string | null
   const hourly_rate = hourlyRateRaw && parseInt(hourlyRateRaw) > 0 ? parseInt(hourlyRateRaw) : null
 
+  // Misure (solo modelle — i campi sono presenti nel form solo se role=model)
+  const parseIntOrNull = (v: FormDataEntryValue | null) => {
+    const n = parseInt(v as string)
+    return isNaN(n) || n <= 0 ? null : n
+  }
+  const parseStrOrNull = (v: FormDataEntryValue | null) => {
+    const s = (v as string | null)?.trim()
+    return s || null
+  }
+  const height_cm = parseIntOrNull(formData.get('height_cm'))
+  const bust_cm = parseIntOrNull(formData.get('bust_cm'))
+  const waist_cm = parseIntOrNull(formData.get('waist_cm'))
+  const hips_cm = parseIntOrNull(formData.get('hips_cm'))
+  const clothing_size = parseStrOrNull(formData.get('clothing_size'))
+  const shoe_size = parseStrOrNull(formData.get('shoe_size'))
+  const hair_color = parseStrOrNull(formData.get('hair_color'))
+  const hair_texture = parseStrOrNull(formData.get('hair_texture'))
+  const eye_color = parseStrOrNull(formData.get('eye_color'))
+
   const { error } = await supabase
     .from('profiles')
-    .update({ full_name, bio: bio || null, city: city || null, instagram_url: instagram_url || null, avatar_url, hourly_rate })
+    .update({
+      full_name, bio: bio || null, city: city || null,
+      instagram_url: instagram_url || null, avatar_url, hourly_rate,
+      height_cm, bust_cm, waist_cm, hips_cm,
+      clothing_size, shoe_size, hair_color, hair_texture, eye_color,
+    })
     .eq('id', user.id)
 
   if (error) return { error: error.message }

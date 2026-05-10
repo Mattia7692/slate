@@ -6,7 +6,9 @@ import { AppNav } from '@/components/layout/AppNav'
 import { RoleBadge } from '@/components/profile/RoleBadge'
 import { ProfileCard } from '@/components/profile/ProfileCard'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
-import type { VisionWithCreator, Profile, Notification } from '@/types'
+import { format, parseISO } from 'date-fns'
+import { it } from 'date-fns/locale'
+import type { VisionWithCreator, TourWithCreator, Profile, Notification } from '@/types'
 
 const ROLE_LABEL = { photographer: 'fotografo', model: 'modella' }
 const ROLE_STYLE = {
@@ -99,10 +101,17 @@ export default async function DashboardPage({
 
   const [
     { data: rawVisions },
+    { data: rawTours },
     { data: photographers },
     { data: models },
   ] = await Promise.all([
     visionsQuery,
+    adminClient
+      .from('tours')
+      .select('*, creator:profiles!tours_creator_id_fkey(id, full_name, role, avatar_url, level)')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(4),
     supabase
       .from('profiles')
       .select('*')
@@ -122,6 +131,7 @@ export default async function DashboardPage({
   ])
 
   const visions = (rawVisions ?? []) as unknown as VisionWithCreator[]
+  const tours = (rawTours ?? []) as unknown as TourWithCreator[]
 
   const photographerProfiles = (photographers ?? []) as unknown as Profile[]
   const modelProfiles = (models ?? []) as unknown as Profile[]
@@ -217,6 +227,66 @@ export default async function DashboardPage({
                   </Link>
                 )
               })}
+            </div>
+          )}
+        </section>
+
+        <div className="h-px bg-neutral-800/60" />
+
+        {/* ── EVENTI RECENTI ──────────────────────────────────── */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wider">
+              Eventi recenti
+            </h2>
+            <Link href="/bacheca" className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors">
+              Vedi tutti →
+            </Link>
+          </div>
+
+          {tours.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-neutral-800 py-10 text-center space-y-1.5">
+              <p className="text-sm text-neutral-600">Nessun evento attivo al momento.</p>
+              <Link href="/bacheca" className="text-xs text-neutral-700 hover:text-neutral-400 transition-colors">
+                Vai alla bacheca →
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {tours.map((tour) => (
+                <Link
+                  key={tour.id}
+                  href={`/bacheca/tours/${tour.id}`}
+                  className="group block rounded-xl overflow-hidden border border-neutral-800 bg-neutral-900 hover:border-neutral-700 transition-all duration-200"
+                >
+                  <div className="relative aspect-[4/3] bg-neutral-800 overflow-hidden">
+                    {tour.cover_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={tour.cover_url}
+                        alt={tour.title}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-3xl text-neutral-700">📅</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3 space-y-1.5">
+                    <p className="text-sm font-medium leading-snug line-clamp-1">{tour.title}</p>
+                    <p className="text-[11px] text-neutral-600 truncate">
+                      {tour.city} · {format(parseISO(tour.start_date), 'd MMM', { locale: it })}–{format(parseISO(tour.end_date), 'd MMM', { locale: it })}
+                    </p>
+                    <span className={[
+                      'text-[10px] font-semibold px-2 py-0.5 rounded-full border inline-block',
+                      ROLE_STYLE[tour.role_needed],
+                    ].join(' ')}>
+                      {tour.role_needed === 'photographer' ? 'fotografo' : 'modella'}
+                    </span>
+                  </div>
+                </Link>
+              ))}
             </div>
           )}
         </section>

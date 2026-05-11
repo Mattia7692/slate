@@ -7,7 +7,11 @@ import { getLevelName, computeSeniorityBonus, yearsFromStartYear } from '@/lib/x
 import { isFounder } from '@/lib/founder'
 import { AdminActionsPanel } from './AdminActionsPanel'
 import { RoleBadge } from '@/components/profile/RoleBadge'
-import type { Profile, ProfileStatus, UserRole } from '@/types'
+import { XPBadge } from '@/components/profile/XPBadge'
+import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
+import { PortfolioGrid } from '@/components/profile/PortfolioGrid'
+import { genrePillClass } from '@/lib/genreColors'
+import type { Profile, ProfileStatus, UserRole, Genre, ReviewWithReviewer } from '@/types'
 import type { PhotoExif } from '@/lib/exif'
 
 const STATUS_BADGE: Record<ProfileStatus, string> = {
@@ -22,6 +26,15 @@ const STATUS_LABEL: Record<ProfileStatus, string> = {
   suspended: 'Sospeso',
 }
 
+function StarRating({ rating }: { rating: number }) {
+  return (
+    <span className="text-amber-400 text-sm">
+      {'★'.repeat(rating)}
+      <span className="text-neutral-700">{'★'.repeat(5 - rating)}</span>
+    </span>
+  )
+}
+
 interface AdminProfilePageProps {
   params: Promise<{ id: string }>
 }
@@ -32,26 +45,43 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
   const { id } = await params
   const admin = createAdminClient()
 
-  // Identità dell'utente corrente (per sapere se è il Founder)
   const supabase = await createClient()
   const { data: { user: currentUser } } = await supabase.auth.getUser()
   const currentIsFounder = isFounder(currentUser?.id ?? '')
 
-  const { data: profile } = await admin
-    .from('profiles')
-    .select('*')
-    .eq('id', id)
-    .single()
+  const [
+    { data: profile },
+    { data: portfolioItems },
+    { data: authUserResult },
+    { data: profileGenreRows },
+    { data: reviews },
+  ] = await Promise.all([
+    admin.from('profiles').select('*').eq('id', id).single(),
+    admin.from('portfolio_items').select('*').eq('profile_id', id).order('order_index'),
+    admin.auth.admin.getUserById(id),
+    admin.from('profile_genres').select('genre_id, genres(id, slug, label, order_index)').eq('profile_id', id),
+    admin.from('reviews')
+      .select('*, reviewer:profiles!reviews_reviewer_id_fkey(id, full_name, role)')
+      .eq('reviewee_id', id)
+      .order('created_at', { ascending: false }),
+  ])
 
   if (!profile) notFound()
 
-  const { data: portfolioItems } = await admin
-    .from('portfolio_items')
-    .select('*')
-    .eq('profile_id', id)
-    .order('order_index')
+  const authUser = (authUserResult as unknown as { user?: { email?: string } } | null)?.user
 
-  const { data: authUser } = await admin.auth.admin.getUserById(id)
+  const profileGenres = (profileGenreRows ?? [])
+    .map((r) => {
+      const g = r.genres as unknown
+      if (!g || typeof g !== 'object' || Array.isArray(g)) return null
+      return g as Genre
+    })
+    .filter((g): g is Genre => g !== null)
+
+  const avgRating =
+    reviews && reviews.length > 0
+      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+      : null
 
   // Signed URL per la foto anzianità (bucket privato)
   let oldestPhotoSignedUrl: string | null = null
@@ -65,132 +95,187 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
     }
   }
 
+  const csy = (profile as Profile & { career_start_year?: number | null }).career_start_year
+  const years = csy ? yearsFromStartYear(csy) : profile.years_in_industry
+
   return (
     <div className="max-w-3xl mx-auto space-y-8">
+
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-neutral-500">
-        <Link href="/admin" className="hover:text-neutral-300 transition-colors">
-          Profili
-        </Link>
+        <Link href="/admin" className="hover:text-neutral-300 transition-colors">Profili</Link>
         <span>›</span>
         <span className="text-neutral-300">{profile.full_name}</span>
       </div>
 
-      {/* Header + Azioni affiancati */}
-      <div className="flex items-start gap-6">
-        {/* Sinistra: avatar + info */}
-        <div className="flex items-start gap-4 flex-1 min-w-0">
-          <div className={[
-            'w-14 h-14 rounded-full overflow-hidden shrink-0 flex items-center justify-center text-xl font-semibold',
-            (profile as unknown as Profile).avatar_url ? 'bg-neutral-800' : profile.role === 'photographer' ? 'bg-sky-500/20 text-sky-400' : 'bg-rose-500/20 text-rose-400',
-          ].join(' ')}>
-            {(profile as unknown as Profile).avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={(profile as unknown as Profile).avatar_url!}
-                alt={profile.full_name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              profile.role === 'photographer' ? 'F' : 'M'
-            )}
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-xl font-semibold">{profile.full_name}</h1>
-              <span
-                className={[
-                  'rounded-full border px-2.5 py-0.5 text-xs font-medium',
-                  STATUS_BADGE[profile.status as ProfileStatus],
-                ].join(' ')}
-              >
-                {STATUS_LABEL[profile.status as ProfileStatus]}
-              </span>
-              {isFounder(id) && (
-                <span className="rounded-full border border-amber-400/40 bg-gradient-to-r from-amber-500/20 to-rose-500/20 px-2.5 py-0.5 text-xs font-semibold text-amber-300">
-                  ✦ Founder
-                </span>
-              )}
-              {!isFounder(id) && profile.is_admin && (
-                <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-400">
-                  Admin
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <RoleBadge role={profile.role as UserRole} />
-              {profile.city && <span className="text-sm text-neutral-500">{profile.city}</span>}
-            </div>
-            {authUser?.user?.email && (
-              <p className="text-xs text-neutral-600 mt-0.5">{authUser.user.email}</p>
-            )}
-          </div>
-        </div>
+      {/* Hero — avatar + info + azioni admin */}
+      <div className="flex items-start gap-5 flex-wrap sm:flex-nowrap">
+        <ProfileAvatar avatarUrl={(profile as unknown as Profile).avatar_url ?? null} role={profile.role as UserRole} size={64} />
 
-        {/* Destra: pannello azioni */}
-        <div className="shrink-0 w-64">
-          <AdminActionsPanel
-            profileId={id}
-            currentStatus={profile.status as ProfileStatus}
-            isAdmin={!!profile.is_admin}
-            isSelf={currentUser?.id === id}
-            isFounderProfile={isFounder(id)}
-            currentIsFounder={currentIsFounder}
-            profileName={profile.full_name}
-          />
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl font-semibold">{profile.full_name}</h1>
+                <span className={['rounded-full border px-2.5 py-0.5 text-xs font-medium', STATUS_BADGE[profile.status as ProfileStatus]].join(' ')}>
+                  {STATUS_LABEL[profile.status as ProfileStatus]}
+                </span>
+                {isFounder(id) && (
+                  <span className="rounded-full border border-amber-400/40 bg-gradient-to-r from-amber-500/20 to-rose-500/20 px-2.5 py-0.5 text-xs font-semibold text-amber-300">
+                    ✦ Founder
+                  </span>
+                )}
+                {!isFounder(id) && profile.is_admin && (
+                  <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-400">
+                    Admin
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-neutral-400 mt-0.5">
+                <RoleBadge role={profile.role as UserRole} />
+                {profile.city ? ` · ${profile.city}` : ''}
+              </p>
+            </div>
+            <XPBadge level={profile.level} xp={profile.xp} showXp isFounder={isFounder(id)} />
+          </div>
+
+          {/* Stats riga */}
+          <div className="flex items-center gap-4 text-sm text-neutral-500 flex-wrap">
+            {(years as number) > 0 && <span>{years} anni nel settore</span>}
+            {profile.hourly_rate && (
+              <span className="text-emerald-400 font-medium">€{profile.hourly_rate}/h</span>
+            )}
+            {avgRating && (
+              <span className="flex items-center gap-1">
+                <span className="text-amber-400">★</span>
+                {avgRating}
+                <span className="text-neutral-600">({reviews!.length})</span>
+              </span>
+            )}
+            {profile.instagram_url && (
+              <a
+                href={profile.instagram_url.startsWith('@') ? `https://instagram.com/${profile.instagram_url.slice(1)}` : profile.instagram_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-neutral-300 transition-colors"
+              >
+                {profile.instagram_url}
+              </a>
+            )}
+            {authUser?.email && (
+              <span className="text-neutral-600 text-xs">{authUser.email}</span>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Sezione info */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* Pannello azioni admin */}
+      <AdminActionsPanel
+        profileId={id}
+        currentStatus={profile.status as ProfileStatus}
+        isAdmin={!!profile.is_admin}
+        isSelf={currentUser?.id === id}
+        isFounderProfile={isFounder(id)}
+        currentIsFounder={currentIsFounder}
+        profileName={profile.full_name}
+      />
+
+      {/* Info grid — dati piattaforma */}
+      <div className="grid grid-cols-2 gap-3">
         <InfoCard label="Livello" value={`${getLevelName(profile.level)} (Lv. ${profile.level})`} />
         <InfoCard label="XP totali" value={`${profile.xp} XP`} />
-        {(() => {
-          const csy = (profile as Profile & { career_start_year?: number | null }).career_start_year
-          const years = csy ? yearsFromStartYear(csy) : profile.years_in_industry
-          return (
-            <InfoCard
-              label="Esperienza"
-              value={`${years} anni${csy ? ` (dal ${csy})` : ''}`}
-              sub={`Bonus anzianità: +${computeSeniorityBonus(years)} XP`}
-            />
-          )
-        })()}
+        <InfoCard
+          label="Esperienza"
+          value={`${years} anni${csy ? ` (dal ${csy})` : ''}`}
+          sub={`Bonus anzianità: +${computeSeniorityBonus(years as number)} XP`}
+        />
         <InfoCard
           label="Iscritto il"
           value={new Date(profile.created_at).toLocaleDateString('it-IT', {
             day: 'numeric', month: 'long', year: 'numeric',
           })}
         />
-        {profile.instagram_url && (
-          <InfoCard label="Instagram" value={profile.instagram_url} />
-        )}
       </div>
+
+      {/* Generi */}
+      {profileGenres.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {profileGenres.map((g) => (
+            <span key={g.id} className={genrePillClass(g.order_index)}>{g.label}</span>
+          ))}
+        </div>
+      )}
 
       {/* Bio */}
       {profile.bio && (
         <section className="space-y-2">
-          <h2 className="text-sm font-medium text-neutral-400 uppercase tracking-wider">Bio</h2>
+          <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Bio</h2>
           <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap">{profile.bio}</p>
         </section>
       )}
 
-      {/* Foto di verifica anzianità — visibile solo qui, non nel profilo pubblico */}
+      {/* Misure (solo modelle) */}
+      {profile.role === 'model' && profile.height_cm && (
+        <section className="space-y-3">
+          <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Misure</h2>
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900/50 p-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-sm">
+              <div className="flex justify-between gap-2">
+                <span className="text-neutral-500">Altezza</span>
+                <span className="font-medium">{profile.height_cm} cm</span>
+              </div>
+              {(profile.bust_cm || profile.waist_cm || profile.hips_cm) && (
+                <div className="flex justify-between gap-2">
+                  <span className="text-neutral-500">Misure</span>
+                  <span className="font-medium tabular-nums">
+                    {profile.bust_cm ?? '—'}/{profile.waist_cm ?? '—'}/{profile.hips_cm ?? '—'}
+                  </span>
+                </div>
+              )}
+              {profile.clothing_size && (
+                <div className="flex justify-between gap-2">
+                  <span className="text-neutral-500">Taglia</span>
+                  <span className="font-medium">{profile.clothing_size}</span>
+                </div>
+              )}
+              {profile.shoe_size && (
+                <div className="flex justify-between gap-2">
+                  <span className="text-neutral-500">Scarpe</span>
+                  <span className="font-medium">{profile.shoe_size}</span>
+                </div>
+              )}
+              {profile.hair_color && (
+                <div className="flex justify-between gap-2">
+                  <span className="text-neutral-500">Capelli</span>
+                  <span className="font-medium capitalize">
+                    {[profile.hair_color, profile.hair_texture].filter(Boolean).join(', ')}
+                  </span>
+                </div>
+              )}
+              {profile.eye_color && (
+                <div className="flex justify-between gap-2">
+                  <span className="text-neutral-500">Occhi</span>
+                  <span className="font-medium capitalize">{profile.eye_color}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Foto di verifica anzianità — solo admin */}
       {(oldestPhotoSignedUrl || profile.oldest_photo_url) && (
         <section className="space-y-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-sm font-medium text-amber-400 uppercase tracking-wider">
-                Prima foto professionale
-              </h2>
-              <p className="text-xs text-neutral-600 mt-0.5">
-                Riservata agli amministratori — non visibile nel profilo pubblico
-              </p>
-            </div>
+          <div>
+            <h2 className="text-sm font-medium text-amber-400 uppercase tracking-wider">
+              Prima foto professionale
+            </h2>
+            <p className="text-xs text-neutral-600 mt-0.5">
+              Riservata agli amministratori — non visibile nel profilo pubblico
+            </p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
-            {/* Foto */}
             {(oldestPhotoSignedUrl ?? profile.oldest_photo_url) && (
               <div className="relative w-full sm:w-64 aspect-video rounded-xl overflow-hidden border border-neutral-800 shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -202,7 +287,6 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
               </div>
             )}
 
-            {/* EXIF panel — stile Lightroom */}
             {(() => {
               const exif = (profile as unknown as Profile).oldest_photo_exif as PhotoExif | null
               const date = profile.oldest_photo_date
@@ -231,28 +315,49 @@ export default async function AdminProfilePage({ params }: AdminProfilePageProps
       )}
 
       {/* Portfolio */}
-      {portfolioItems && portfolioItems.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-sm font-medium text-neutral-400 uppercase tracking-wider">
-            Portfolio / Book ({portfolioItems.length} foto)
+      <section className="space-y-4">
+        <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wider">
+          Portfolio / Book
+          {portfolioItems?.length ? ` (${portfolioItems.length})` : ''}
+        </h2>
+        <PortfolioGrid items={portfolioItems ?? []} />
+      </section>
+
+      {/* Recensioni */}
+      {reviews && reviews.length > 0 && (
+        <section className="space-y-4">
+          <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wider">
+            Recensioni ({reviews.length})
           </h2>
-          <div className="grid grid-cols-3 gap-2">
-            {portfolioItems.map((item) => (
-              <div
-                key={item.id}
-                className="relative aspect-square rounded-lg overflow-hidden border border-neutral-800"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={item.image_url}
-                  alt={item.caption ?? `Portfolio ${item.order_index + 1}`}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
+          <div className="space-y-3">
+            {(reviews as ReviewWithReviewer[]).map((review) => (
+              <div key={review.id} className="rounded-xl border border-neutral-800 bg-neutral-900/50 p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Link
+                      href={`/admin/${review.reviewer.id}`}
+                      className="text-sm font-medium hover:text-neutral-300 transition-colors"
+                    >
+                      {review.reviewer.full_name}
+                    </Link>
+                    <RoleBadge role={review.reviewer.role as 'photographer' | 'model'} className="ml-2" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <StarRating rating={review.rating} />
+                    <span className="text-xs text-neutral-600">
+                      {new Date(review.created_at).toLocaleDateString('it-IT')}
+                    </span>
+                  </div>
+                </div>
+                {review.comment && (
+                  <p className="text-sm text-neutral-400 leading-relaxed">{review.comment}</p>
+                )}
               </div>
             ))}
           </div>
         </section>
       )}
+
     </div>
   )
 }

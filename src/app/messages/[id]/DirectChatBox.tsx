@@ -5,17 +5,6 @@ import { createClient } from '@/lib/supabase/client'
 import { sendDirectMessage } from '../actions'
 import type { DirectMessageWithSender } from '@/types'
 
-const TIPS: Record<'photographer' | 'model', string[]> = {
-  photographer: [
-    'Presenta il tuo stile e il tipo di shooting che hai in mente.',
-    'Specifica location, data indicativa e cosa offri in cambio.',
-  ],
-  model: [
-    'Racconta brevemente la tua esperienza e cosa stai cercando.',
-    'Chiedi info su utilizzo delle foto, consegna e diritti d\'immagine.',
-  ],
-}
-
 interface DirectChatBoxProps {
   conversationId: string
   currentUserId: string
@@ -84,18 +73,10 @@ export function DirectChatBox({ conversationId, currentUserId, currentUserRole, 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* Notice trasparenza */}
-      <div className="mx-4 mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 space-y-2">
-        <p className="text-xs font-medium text-amber-400">
-          🔒 Le conversazioni su Slate sono visibili agli amministratori — sii sempre corretto e rispettoso.
+      <div className="mx-4 mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+        <p className="text-xs text-amber-400/80 leading-relaxed">
+          Le chat sono visibili agli amministratori. Comportati sempre in modo corretto e rispettoso — contenuti inappropriati porteranno all'immediata sospensione dell'account.
         </p>
-        <ul className="space-y-1">
-          {TIPS[currentUserRole].map((tip, i) => (
-            <li key={i} className="text-xs text-amber-400/70 flex items-start gap-1.5">
-              <span className="mt-px shrink-0">·</span>
-              {tip}
-            </li>
-          ))}
-        </ul>
       </div>
 
       {/* Messaggi */}

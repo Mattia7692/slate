@@ -195,6 +195,14 @@ export function NewTourForm({ genres }: Props) {
 
       if (result?.error) setError(result.error)
     } catch (err) {
+      // Next.js redirect() throws a special NEXT_REDIRECT error — let it propagate for navigation
+      if (
+        err !== null &&
+        typeof err === 'object' &&
+        'digest' in err &&
+        typeof (err as { digest: unknown }).digest === 'string' &&
+        (err as { digest: string }).digest.startsWith('NEXT_REDIRECT')
+      ) throw err
       setError(err instanceof Error ? err.message : 'Errore imprevisto.')
     } finally {
       setLoading(false)
